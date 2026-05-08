@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Loader } from 'lucide-react'
 import { createOrder } from '@/lib/db'
 import { EMPTY_ORDER_FORM, STATUS_CONFIG } from '@/lib/constants'
@@ -16,7 +16,7 @@ export default function OrderForm({ onSuccess, onCancel }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]       = useState<string | null>(null)
 
-  async function handleSubmit(e: SubmitEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)

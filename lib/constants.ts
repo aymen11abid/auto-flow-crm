@@ -1,10 +1,10 @@
-import { Plus, Wrench, Clock, CheckCircle, AlertTriangle, type LucideProps } from 'lucide-react'
-import type { ComponentType } from 'react'
+import { Plus, Wrench, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { OrderStatus, NewOrderForm } from './types'
 
 export const STATUS_CONFIG: Record<
   OrderStatus,
-  { label: string; color: string; Icon: ComponentType<LucideProps> }
+  { label: string; color: string; Icon: LucideIcon }
 > = {
   neu: {
     label: 'Neu',
