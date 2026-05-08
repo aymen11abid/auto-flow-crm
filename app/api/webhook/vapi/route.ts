@@ -6,8 +6,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Vapi-Event-Typen die einen Auftrag erzeugen sollen
 const RELEVANT_TYPES = new Set(['end-of-call-report', 'call.ended'])
+
+function str(val: unknown): string {
+  return val != null ? String(val).trim() : ''
+}
 
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>
@@ -17,61 +20,55 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Vapi wraps alles unter body.message
-  const message = (body.message ?? body) as Record<string, unknown>
-  const eventType = message.type as string | undefined
+  // ── Kompletter Request Body im Log ────────────────────────────────────────
+  console.log('=== VAPI WEBHOOK RECEIVED ===')
+  console.log(JSON.stringify(body, null, 2))
+  console.log('=== END VAPI WEBHOOK ===')
 
-  // Debug-Log: zeigt das komplette Payload im Server-Terminal
-  console.log('[vapi-webhook] event type:', eventType)
-  console.log('[vapi-webhook] payload:', JSON.stringify(body, null, 2))
+  const message   = (body.message ?? body) as Record<string, unknown>
+  const eventType = str(message.type)
 
-  // Alle Events ausser end-of-call-report / call.ended ignorieren
+  console.log('[vapi] event type:', eventType)
+
   if (!eventType || !RELEVANT_TYPES.has(eventType)) {
+    console.log('[vapi] ignored event:', eventType)
     return NextResponse.json({ success: true, ignored: true })
   }
 
-  // ── Telefonnummer ──────────────────────────────────────────────────────────
-  // Vapi legt customer direkt unter message UND unter message.call.customer
-  const messageCustomer  = (message.customer  as Record<string, unknown>) ?? {}
-  const callCustomer     = ((message.call as Record<string, unknown>)?.customer as Record<string, unknown>) ?? {}
-
-  const telefonnummer =
-    (messageCustomer.number  as string) ||
-    (callCustomer.number     as string) ||
-    ''
-
-  // ── Strukturierte Daten (Vapi Analysis) ───────────────────────────────────
-  const analysis    = (message.analysis  as Record<string, unknown>) ?? {}
+  // ── Pfade exakt wie vom User definiert ────────────────────────────────────
+  const analysis    = (message.analysis   as Record<string, unknown>) ?? {}
   const structured  = (analysis.structuredData as Record<string, unknown>) ?? {}
+  const call        = (message.call       as Record<string, unknown>) ?? {}
+  const msgCustomer = (message.customer   as Record<string, unknown>) ?? {}
+  const callCustomer= (call.customer      as Record<string, unknown>) ?? {}
 
-  const kunden_name = String(
-    structured.kunden_name ?? structured.name ?? ''
-  ).trim()
+  // kunden_name: structuredData.kunden_name → call.customer.name
+  const kunden_name = str(structured.kunden_name) || str(callCustomer.name)
 
-  const kunden_telefonnummer = String(
-    structured.kunden_telefonnummer ??
-    structured.telefonnummer ??
-    telefonnummer
-  ).trim()
+  // fahrzeug: structuredData.fahrzeug
+  const fahrzeug = str(structured.fahrzeug)
 
-  const fahrzeug = String(
-    structured.fahrzeug ?? structured.vehicle ?? ''
-  ).trim()
+  // problem_beschreibung: structuredData.problem_beschreibung
+  const problem_beschreibung = str(structured.problem_beschreibung)
 
-  const problem_beschreibung = String(
-    structured.problem_beschreibung ??
-    structured.problem ??
-    structured.issue ??
-    ''
-  ).trim()
+  // kunden_telefonnummer: message.customer.number → message.call.customer.number
+  const kunden_telefonnummer = str(msgCustomer.number) || str(callCustomer.number)
 
-  // ── Status ────────────────────────────────────────────────────────────────
+  // termin_vereinbart: structuredData.termin_vereinbart
   const termin_vereinbart =
     structured.termin_vereinbart === true ||
-    structured.termin_vereinbart === 'true' ||
-    structured.appointment_scheduled === true
+    structured.termin_vereinbart === 'true'
 
   const status = termin_vereinbart ? 'neu' : 'eskalation_rueckruf'
+
+  console.log('[vapi] extracted fields:', {
+    kunden_name,
+    kunden_telefonnummer,
+    fahrzeug,
+    problem_beschreibung,
+    termin_vereinbart,
+    status,
+  })
 
   // ── Speichern ─────────────────────────────────────────────────────────────
   const { error } = await supabase.from('auftraege').insert([{
@@ -83,10 +80,10 @@ export async function POST(request: NextRequest) {
   }])
 
   if (error) {
-    console.error('[vapi-webhook] Supabase insert error:', error.message)
+    console.error('[vapi] Supabase error:', error.message)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
-  console.log('[vapi-webhook] Auftrag gespeichert:', { kunden_name, kunden_telefonnummer, fahrzeug, status })
+  console.log('[vapi] Auftrag gespeichert ✓')
   return NextResponse.json({ success: true })
 }
