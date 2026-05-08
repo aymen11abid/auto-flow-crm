@@ -1,33 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Server-seitiger Client – läuft nur in der API Route, nie im Browser
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Vapi-Event-Typen die einen Auftrag erzeugen sollen
+const RELEVANT_TYPES = new Set(['end-of-call-report', 'call.ended'])
+
 export async function POST(request: NextRequest) {
-  let body: unknown
+  let body: Record<string, unknown>
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Vapi sendet entweder das Payload direkt oder unter body.message
-  const payload = (body as Record<string, unknown>)
-  const message = (payload.message ?? payload) as Record<string, unknown>
+  // Vapi wraps alles unter body.message
+  const message = (body.message ?? body) as Record<string, unknown>
+  const eventType = message.type as string | undefined
 
-  // Strukturierte Daten aus Vapi-Analyse (konfiguriert im Vapi-Dashboard)
-  const structured = (
-    (message.analysis as Record<string, unknown>)?.structuredData ?? {}
-  ) as Record<string, unknown>
+  // Debug-Log: zeigt das komplette Payload im Server-Terminal
+  console.log('[vapi-webhook] event type:', eventType)
+  console.log('[vapi-webhook] payload:', JSON.stringify(body, null, 2))
 
-  // Telefonnummer: primär aus structuredData, Fallback aus call.customer.number
-  const callCustomer = (
-    (message.call as Record<string, unknown>)?.customer ?? {}
-  ) as Record<string, unknown>
+  // Alle Events ausser end-of-call-report / call.ended ignorieren
+  if (!eventType || !RELEVANT_TYPES.has(eventType)) {
+    return NextResponse.json({ success: true, ignored: true })
+  }
+
+  // ── Telefonnummer ──────────────────────────────────────────────────────────
+  // Vapi legt customer direkt unter message UND unter message.call.customer
+  const messageCustomer  = (message.customer  as Record<string, unknown>) ?? {}
+  const callCustomer     = ((message.call as Record<string, unknown>)?.customer as Record<string, unknown>) ?? {}
+
+  const telefonnummer =
+    (messageCustomer.number  as string) ||
+    (callCustomer.number     as string) ||
+    ''
+
+  // ── Strukturierte Daten (Vapi Analysis) ───────────────────────────────────
+  const analysis    = (message.analysis  as Record<string, unknown>) ?? {}
+  const structured  = (analysis.structuredData as Record<string, unknown>) ?? {}
 
   const kunden_name = String(
     structured.kunden_name ?? structured.name ?? ''
@@ -36,8 +51,7 @@ export async function POST(request: NextRequest) {
   const kunden_telefonnummer = String(
     structured.kunden_telefonnummer ??
     structured.telefonnummer ??
-    callCustomer.number ??
-    ''
+    telefonnummer
   ).trim()
 
   const fahrzeug = String(
@@ -51,7 +65,7 @@ export async function POST(request: NextRequest) {
     ''
   ).trim()
 
-  // Termin vereinbart? → Status ableiten
+  // ── Status ────────────────────────────────────────────────────────────────
   const termin_vereinbart =
     structured.termin_vereinbart === true ||
     structured.termin_vereinbart === 'true' ||
@@ -59,20 +73,20 @@ export async function POST(request: NextRequest) {
 
   const status = termin_vereinbart ? 'neu' : 'eskalation_rueckruf'
 
-  const { error } = await supabase.from('auftraege').insert([
-    {
-      kunden_name,
-      kunden_telefonnummer,
-      fahrzeug,
-      problem_beschreibung,
-      status,
-    },
-  ])
+  // ── Speichern ─────────────────────────────────────────────────────────────
+  const { error } = await supabase.from('auftraege').insert([{
+    kunden_name,
+    kunden_telefonnummer,
+    fahrzeug,
+    problem_beschreibung,
+    status,
+  }])
 
   if (error) {
     console.error('[vapi-webhook] Supabase insert error:', error.message)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
+  console.log('[vapi-webhook] Auftrag gespeichert:', { kunden_name, kunden_telefonnummer, fahrzeug, status })
   return NextResponse.json({ success: true })
 }
