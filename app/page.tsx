@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, RefreshCw, Wrench, AlertTriangle, Loader } from 'lucide-react'
+import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, Bot } from 'lucide-react'
+import Link from 'next/link'
 import { fetchOrders, softDeleteOrder } from '@/lib/db'
 import type { Order } from '@/lib/types'
 import OrderCard   from '@/components/OrderCard'
@@ -76,6 +77,13 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/agent"
+              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 px-3 py-2 rounded-lg transition-colors"
+              title="KI-Stratege"
+            >
+              <Bot size={15} />
+              Stratege
+            </Link>
             <button onClick={loadOrders}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"
