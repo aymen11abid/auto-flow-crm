@@ -9,7 +9,19 @@ const supabase = createClient(
 const RELEVANT_TYPES = new Set(['end-of-call-report', 'call.ended'])
 
 function str(val: unknown): string {
-  return val != null ? String(val).trim() : ''
+  return val != null && val !== '' ? String(val).trim() : ''
+}
+
+// Vapi speichert strukturierte Outputs als { [uuid]: { name, result } }
+// Diese Funktion wandelt das in eine einfache { name: result } Map um
+function parseStructuredOutputs(artifact: Record<string, unknown>): Record<string, unknown> {
+  const outputs = artifact.structuredOutputs as Record<string, { name: string; result: unknown }> | undefined
+  if (!outputs) return {}
+  const map: Record<string, unknown> = {}
+  for (const entry of Object.values(outputs)) {
+    if (entry?.name != null) map[entry.name] = entry.result
+  }
+  return map
 }
 
 export async function POST(request: NextRequest) {
@@ -20,57 +32,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // ── Kompletter Request Body im Log ────────────────────────────────────────
-  console.log('=== VAPI WEBHOOK RECEIVED ===')
-  console.log(JSON.stringify(body, null, 2))
-  console.log('=== END VAPI WEBHOOK ===')
-
   const message   = (body.message ?? body) as Record<string, unknown>
   const eventType = str(message.type)
 
   console.log('[vapi] event type:', eventType)
 
   if (!eventType || !RELEVANT_TYPES.has(eventType)) {
-    console.log('[vapi] ignored event:', eventType)
+    console.log('[vapi] ignored:', eventType)
     return NextResponse.json({ success: true, ignored: true })
   }
 
-  // ── Pfade exakt wie vom User definiert ────────────────────────────────────
-  const analysis    = (message.analysis   as Record<string, unknown>) ?? {}
-  const structured  = (analysis.structuredData as Record<string, unknown>) ?? {}
-  const call        = (message.call       as Record<string, unknown>) ?? {}
-  const msgCustomer = (message.customer   as Record<string, unknown>) ?? {}
-  const callCustomer= (call.customer      as Record<string, unknown>) ?? {}
+  // ── Strukturierte Outputs aus message.artifact.structuredOutputs ──────────
+  const artifact  = (message.artifact as Record<string, unknown>) ?? {}
+  const outputs   = parseStructuredOutputs(artifact)
 
-  // kunden_name: structuredData.kunden_name → call.customer.name
-  const kunden_name = str(structured.kunden_name) || str(callCustomer.name)
+  // ── Telefonnummer aus message.customer.number ─────────────────────────────
+  const msgCustomer  = (message.customer as Record<string, unknown>) ?? {}
+  const call         = (message.call     as Record<string, unknown>) ?? {}
+  const callCustomer = (call.customer    as Record<string, unknown>) ?? {}
 
-  // fahrzeug: structuredData.fahrzeug
-  const fahrzeug = str(structured.fahrzeug)
+  const kunden_name          = str(outputs.kunden_name)          || str(callCustomer.name)
+  const fahrzeug             = str(outputs.fahrzeug)
+  const problem_beschreibung = str(outputs.problem_beschreibung)
+  const kunden_telefonnummer = str(msgCustomer.number)           || str(callCustomer.number)
 
-  // problem_beschreibung: structuredData.problem_beschreibung
-  const problem_beschreibung = str(structured.problem_beschreibung)
-
-  // kunden_telefonnummer: message.customer.number → message.call.customer.number
-  const kunden_telefonnummer = str(msgCustomer.number) || str(callCustomer.number)
-
-  // termin_vereinbart: structuredData.termin_vereinbart
   const termin_vereinbart =
-    structured.termin_vereinbart === true ||
-    structured.termin_vereinbart === 'true'
+    outputs.termin_vereinbart === true ||
+    outputs.termin_vereinbart === 'true'
 
   const status = termin_vereinbart ? 'neu' : 'eskalation_rueckruf'
 
-  console.log('[vapi] extracted fields:', {
-    kunden_name,
-    kunden_telefonnummer,
-    fahrzeug,
-    problem_beschreibung,
-    termin_vereinbart,
-    status,
-  })
+  console.log('[vapi] extracted:', { kunden_name, kunden_telefonnummer, fahrzeug, problem_beschreibung, termin_vereinbart, status })
 
-  // ── Speichern ─────────────────────────────────────────────────────────────
   const { error } = await supabase.from('auftraege').insert([{
     kunden_name,
     kunden_telefonnummer,
