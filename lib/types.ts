@@ -16,9 +16,21 @@ export interface Order {
   erstellt_am: string
   geloescht_am: string | null
   loeschgrund: string | null
+  freigabe_token: string | null
+  freigabe_beschreibung: string | null
+  freigabe_foto_url: string | null
+  freigabe_betrag: number | null
+  freigabe_angefragt_am: string | null
+  freigabe_ergebnis: 'approved' | 'rejected' | null
 }
 
 export type NewOrderForm = Pick<
   Order,
   'kunden_name' | 'kunden_telefonnummer' | 'fahrzeug' | 'problem_beschreibung' | 'status'
 >
+
+export interface FreigabeForm {
+  beschreibung: string
+  foto_url: string
+  betrag: string
+}

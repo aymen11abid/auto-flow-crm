@@ -1,18 +1,24 @@
 'use client'
 
-import { Phone, AlertTriangle, XCircle, Trash2 } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order } from '@/lib/types'
 
 interface Props {
   order: Order
   onDeleteClick: (order: Order) => void
+  onFreigabeClick: (order: Order) => void
 }
 
-export default function OrderCard({ order, onDeleteClick }: Props) {
+export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Props) {
   const isEskalation = order.status === 'eskalation_rueckruf'
   const isDeleted    = !!order.geloescht_am
   const { label, color, Icon } = STATUS_CONFIG[order.status]
+
+  const hasFreigabe        = !!order.freigabe_token
+  const freigabeApproved   = order.freigabe_ergebnis === 'approved'
+  const freigabeRejected   = order.freigabe_ergebnis === 'rejected'
+  const freigabePending    = hasFreigabe && !order.freigabe_ergebnis
 
   return (
     <li
@@ -46,6 +52,23 @@ export default function OrderCard({ order, onDeleteClick }: Props) {
 
           <p className="text-sm text-zinc-400 line-clamp-2">{order.problem_beschreibung}</p>
 
+          {/* Freigabe status */}
+          {hasFreigabe && !isDeleted && (
+            <div className={[
+              'flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg w-fit',
+              freigabeApproved ? 'bg-green-950/60 text-green-400 border border-green-800' :
+              freigabeRejected ? 'bg-red-950/60 text-red-400 border border-red-800' :
+              'bg-yellow-950/50 text-yellow-400 border border-yellow-800',
+            ].join(' ')}>
+              {freigabeApproved && <CheckCircle2 size={12} />}
+              {freigabeRejected && <XCircle size={12} />}
+              {freigabePending  && <Clock size={12} className="animate-pulse" />}
+              {freigabeApproved && `Freigegeben${order.freigabe_betrag ? ` · ${order.freigabe_betrag.toFixed(2)} €` : ''}`}
+              {freigabeRejected && 'Abgelehnt — Rückruf nötig'}
+              {freigabePending  && `Wartet auf Freigabe${order.freigabe_betrag ? ` · ${order.freigabe_betrag.toFixed(2)} €` : ''}`}
+            </div>
+          )}
+
           {isDeleted && order.loeschgrund && (
             <p className="text-xs text-zinc-600 italic">Gelöscht: {order.loeschgrund}</p>
           )}
@@ -61,6 +84,21 @@ export default function OrderCard({ order, onDeleteClick }: Props) {
         {/* Actions */}
         {!isDeleted && (
           <div className="flex items-center gap-2 shrink-0">
+            {!freigabeApproved && !freigabeRejected && (
+              <button
+                onClick={() => onFreigabeClick(order)}
+                title="Freigabe anfragen"
+                className={[
+                  'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors',
+                  freigabePending
+                    ? 'bg-yellow-900/50 hover:bg-yellow-900 text-yellow-300 border border-yellow-700'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
+                ].join(' ')}
+              >
+                <Send size={13} />
+                {freigabePending ? 'Link erneut' : 'Freigabe'}
+              </button>
+            )}
             <a
               href={`tel:${order.kunden_telefonnummer}`}
               className={[

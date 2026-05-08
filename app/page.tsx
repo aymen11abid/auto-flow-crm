@@ -5,16 +5,18 @@ import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, Bot } from 'lucide-reac
 import Link from 'next/link'
 import { fetchOrders, softDeleteOrder } from '@/lib/db'
 import type { Order } from '@/lib/types'
-import OrderCard   from '@/components/OrderCard'
-import OrderForm   from '@/components/OrderForm'
-import DeleteModal from '@/components/DeleteModal'
+import OrderCard     from '@/components/OrderCard'
+import OrderForm     from '@/components/OrderForm'
+import DeleteModal   from '@/components/DeleteModal'
+import FreigabeModal from '@/components/FreigabeModal'
 
 export default function Dashboard() {
-  const [orders, setOrders]       = useState<Order[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [formOpen, setFormOpen]   = useState(false)
-  const [error, setError]         = useState<string | null>(null)
+  const [orders, setOrders]             = useState<Order[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [formOpen, setFormOpen]         = useState(false)
+  const [error, setError]               = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null)
+  const [freigabeTarget, setFreigabeTarget] = useState<Order | null>(null)
 
   async function loadOrders() {
     setLoading(true)
@@ -48,6 +50,17 @@ export default function Dashboard() {
     setDeleteTarget(null)
   }
 
+  function handleFreigabeSuccess(token: string) {
+    if (!freigabeTarget) return
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === freigabeTarget.id
+          ? { ...o, freigabe_token: token, status: 'warten_auf_freigabe', freigabe_ergebnis: null }
+          : o
+      )
+    )
+  }
+
   const escalationCount = orders.filter(
     (o) => o.status === 'eskalation_rueckruf' && !o.geloescht_am
   ).length
@@ -60,6 +73,14 @@ export default function Dashboard() {
           order={deleteTarget}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {freigabeTarget && (
+        <FreigabeModal
+          order={freigabeTarget}
+          onClose={() => setFreigabeTarget(null)}
+          onSuccess={handleFreigabeSuccess}
         />
       )}
 
@@ -79,7 +100,6 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <Link href="/agent"
               className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 px-3 py-2 rounded-lg transition-colors"
-              title="KI-Stratege"
             >
               <Bot size={15} />
               Stratege
@@ -136,6 +156,7 @@ export default function Dashboard() {
                   key={order.id}
                   order={order}
                   onDeleteClick={setDeleteTarget}
+                  onFreigabeClick={setFreigabeTarget}
                 />
               ))}
             </ul>
