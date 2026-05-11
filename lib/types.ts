@@ -34,3 +34,13 @@ export interface FreigabeForm {
   foto_url: string
   betrag: string
 }
+
+export type NachrichtVon = 'werkstatt' | 'kunde'
+
+export interface Nachricht {
+  id: string
+  auftrag_id: string
+  inhalt: string
+  von: NachrichtVon
+  erstellt_am: string
+}

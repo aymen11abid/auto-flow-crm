@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm } from './types'
+import type { Order, NewOrderForm, Nachricht, NachrichtVon } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -58,6 +58,18 @@ export async function createFreigabe(
   return { token, error: null }
 }
 
+export async function fetchOrderById(
+  id: string
+): Promise<{ order: Order | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('auftraege')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return { order: null, error: error.message }
+  return { order: data, error: null }
+}
+
 export async function fetchOrderByFreigabeToken(
   token: string
 ): Promise<{ order: Order | null; error: string | null }> {
@@ -80,4 +92,30 @@ export async function resolveFreigabe(
     .update({ freigabe_ergebnis: result, status: newStatus })
     .eq('freigabe_token', token)
   return error?.message ?? null
+}
+
+export async function fetchNachrichten(
+  auftragId: string
+): Promise<{ nachrichten: Nachricht[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('nachrichten')
+    .select('*')
+    .eq('auftrag_id', auftragId)
+    .order('erstellt_am', { ascending: true })
+  if (error) return { nachrichten: [], error: error.message }
+  return { nachrichten: data ?? [], error: null }
+}
+
+export async function sendNachricht(
+  auftragId: string,
+  inhalt: string,
+  von: NachrichtVon
+): Promise<{ nachricht: Nachricht | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('nachrichten')
+    .insert([{ auftrag_id: auftragId, inhalt, von }])
+    .select()
+    .single()
+  if (error) return { nachricht: null, error: error.message }
+  return { nachricht: data, error: null }
 }

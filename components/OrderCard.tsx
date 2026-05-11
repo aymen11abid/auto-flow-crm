@@ -3,6 +3,7 @@
 import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order } from '@/lib/types'
+import MessageThread from './MessageThread'
 
 interface Props {
   order: Order
@@ -122,6 +123,12 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Pro
         )}
 
       </div>
+
+      {/* Nachrichten-Thread */}
+      {!order.geloescht_am && (
+        <MessageThread auftragId={order.id} kundenName={order.kunden_name} />
+      )}
+
     </li>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Loader, Bot, User, ChevronLeft } from 'lucide-react'
+import { Send, Loader, Bot, User, ChevronLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface Message {
@@ -9,12 +9,29 @@ interface Message {
   content: string
 }
 
+const SESSION_KEY = 'agent_last_session'
+
 export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const bottomRef               = useRef<HTMLDivElement>(null)
   const textareaRef             = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_KEY)
+      if (saved) setMessages(JSON.parse(saved))
+    } catch {
+      // ignore corrupt data
+    }
+  }, [])
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(messages))
+    }
+  }, [messages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -117,7 +134,7 @@ export default function AgentPage() {
         >
           <ChevronLeft size={18} />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <div className="w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
             <Bot size={14} className="text-orange-400" />
           </div>
@@ -126,6 +143,18 @@ export default function AgentPage() {
             <p className="text-xs text-zinc-500">Senior PM · KI-Automatisierung</p>
           </div>
         </div>
+        {messages.length > 0 && (
+          <button
+            onClick={() => {
+              setMessages([])
+              localStorage.removeItem(SESSION_KEY)
+            }}
+            title="Session löschen"
+            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-md hover:bg-zinc-800"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </header>
 
       {/* Messages */}
