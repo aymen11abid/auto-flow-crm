@@ -77,6 +77,12 @@ export async function POST(request: NextRequest) {
     ? (rueckruf_raw as 'vormittags' | 'nachmittags' | 'egal')
     : null
 
+  const wunschtermin_tag  = str(outputs.wunschtermin_tag) || null
+  const wunschtermin_raw  = str(outputs.wunschtermin_zeit).toLowerCase()
+  const wunschtermin_zeit = ['vormittags', 'nachmittags', 'egal'].includes(wunschtermin_raw)
+    ? (wunschtermin_raw as 'vormittags' | 'nachmittags' | 'egal')
+    : null
+
   // ── Sicherheits-Fix: kein Telefonnummer → immer Eskalation ────────────────
   if (!kunden_telefonnummer) {
     console.warn('[vapi] kein Telefonnummer – wird als Eskalation markiert')
@@ -100,6 +106,8 @@ export async function POST(request: NextRequest) {
     problem_beschreibung,
     termin_vereinbart,
     rueckruf_wunsch,
+    wunschtermin_tag,
+    wunschtermin_zeit,
     status,
     ist_wiederholung,
   })
@@ -110,6 +118,8 @@ export async function POST(request: NextRequest) {
     fahrzeug,
     problem_beschreibung,
     rueckruf_wunsch,
+    wunschtermin_tag,
+    wunschtermin_zeit,
     status,
     ist_wiederholung,
   }])

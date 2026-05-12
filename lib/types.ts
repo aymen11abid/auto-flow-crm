@@ -18,6 +18,8 @@ export interface Order {
   loeschgrund: string | null
   ist_wiederholung: boolean
   rueckruf_wunsch: 'vormittags' | 'nachmittags' | 'egal' | null
+  wunschtermin_tag: string | null
+  wunschtermin_zeit: 'vormittags' | 'nachmittags' | 'egal' | null
   freigabe_token: string | null
   freigabe_beschreibung: string | null
   freigabe_foto_url: string | null

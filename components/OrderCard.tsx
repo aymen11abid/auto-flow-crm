@@ -58,6 +58,15 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Pro
 
           <p className="text-sm text-zinc-400 line-clamp-2">{order.problem_beschreibung}</p>
 
+          {/* Wunschtermin */}
+          {order.wunschtermin_tag && !isDeleted && (
+            <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+              <Sun size={11} className="text-yellow-500" />
+              Wunschtermin: {order.wunschtermin_tag}
+              {order.wunschtermin_zeit && ` · ${order.wunschtermin_zeit}`}
+            </span>
+          )}
+
           {/* Rückrufwunsch */}
           {order.rueckruf_wunsch && !isDeleted && (
             <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
