@@ -1,6 +1,6 @@
 'use client'
 
-import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order } from '@/lib/types'
 
@@ -57,6 +57,16 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Pro
           </div>
 
           <p className="text-sm text-zinc-400 line-clamp-2">{order.problem_beschreibung}</p>
+
+          {/* Rückrufwunsch */}
+          {order.rueckruf_wunsch && !isDeleted && (
+            <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+              {order.rueckruf_wunsch === 'vormittags' && <Sun size={11} className="text-yellow-500" />}
+              {order.rueckruf_wunsch === 'nachmittags' && <Sunset size={11} className="text-orange-400" />}
+              {order.rueckruf_wunsch === 'egal' && <Phone size={11} />}
+              Rückruf {order.rueckruf_wunsch}
+            </span>
+          )}
 
           {/* Freigabe status */}
           {hasFreigabe && !isDeleted && (

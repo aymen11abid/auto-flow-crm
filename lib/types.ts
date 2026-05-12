@@ -17,6 +17,7 @@ export interface Order {
   geloescht_am: string | null
   loeschgrund: string | null
   ist_wiederholung: boolean
+  rueckruf_wunsch: 'vormittags' | 'nachmittags' | 'egal' | null
   freigabe_token: string | null
   freigabe_beschreibung: string | null
   freigabe_foto_url: string | null
