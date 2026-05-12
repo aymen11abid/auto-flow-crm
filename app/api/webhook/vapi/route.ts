@@ -6,11 +6,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Vapi sendet end-of-call-report wenn der Anruf beendet ist
-// Struktur: body.message.type = "end-of-call-report"
-//           body.message.artifact.structuredOutputs = { [uuid]: { name, result } }
-//           body.message.customer.number = Telefonnummer
-
 function extractStructuredOutputs(artifact: unknown): Record<string, unknown> {
   if (!artifact || typeof artifact !== 'object') return {}
   const so = (artifact as Record<string, unknown>).structuredOutputs
@@ -29,6 +24,16 @@ function str(val: unknown): string {
   return String(val).trim()
 }
 
+async function isWiederholung(telefonnummer: string): Promise<boolean> {
+  if (!telefonnummer) return false
+  const { count } = await supabase
+    .from('auftraege')
+    .select('id', { count: 'exact', head: true })
+    .eq('kunden_telefonnummer', telefonnummer)
+    .is('geloescht_am', null)
+  return (count ?? 0) > 0
+}
+
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>
   try {
@@ -37,29 +42,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Vapi wraps alles unter body.message
   const message   = (body.message ?? body) as Record<string, unknown>
   const eventType = str(message.type)
 
   console.log('[vapi] ─── incoming event:', eventType)
 
-  // Alle Events außer end-of-call-report ignorieren
   if (eventType !== 'end-of-call-report') {
     console.log('[vapi] ignored:', eventType)
     return NextResponse.json({ success: true, ignored: true })
   }
 
   // ── Strukturierte Outputs ─────────────────────────────────────────────────
-  // Pfad: message.artifact.structuredOutputs
   const artifact = message.artifact
   const outputs  = extractStructuredOutputs(artifact)
 
-  console.log('[vapi] artifact.structuredOutputs raw:', JSON.stringify(artifact && typeof artifact === 'object' ? (artifact as Record<string,unknown>).structuredOutputs : null))
   console.log('[vapi] outputs map:', JSON.stringify(outputs))
 
   // ── Telefonnummer ─────────────────────────────────────────────────────────
-  // Pfad 1: message.customer.number
-  // Pfad 2: message.call.customer.number
   const msgCustomer  = (message.customer as Record<string, unknown>) ?? {}
   const call         = (message.call     as Record<string, unknown>) ?? {}
   const callCustomer = (call.customer    as Record<string, unknown>) ?? {}
@@ -73,7 +72,21 @@ export async function POST(request: NextRequest) {
   const problem_beschreibung = str(outputs.problem_beschreibung)
   const termin_vereinbart    = outputs.termin_vereinbart === true
 
-  const status = termin_vereinbart ? 'neu' : 'eskalation_rueckruf'
+  // ── Sicherheits-Fix: kein Telefonnummer → immer Eskalation ────────────────
+  if (!kunden_telefonnummer) {
+    console.warn('[vapi] kein Telefonnummer – wird als Eskalation markiert')
+  }
+  const status = !kunden_telefonnummer
+    ? 'eskalation_rueckruf'
+    : termin_vereinbart
+      ? 'neu'
+      : 'eskalation_rueckruf'
+
+  // ── Rückrufer-Erkennung ───────────────────────────────────────────────────
+  const ist_wiederholung = await isWiederholung(kunden_telefonnummer)
+  if (ist_wiederholung) {
+    console.log('[vapi] Rückrufer erkannt:', kunden_telefonnummer)
+  }
 
   console.log('[vapi] fields to save:', {
     kunden_name,
@@ -82,12 +95,8 @@ export async function POST(request: NextRequest) {
     problem_beschreibung,
     termin_vereinbart,
     status,
+    ist_wiederholung,
   })
-
-  // ── Validierung ───────────────────────────────────────────────────────────
-  if (!kunden_telefonnummer) {
-    console.warn('[vapi] kein Telefonnummer – Auftrag wird trotzdem gespeichert')
-  }
 
   const { error } = await supabase.from('auftraege').insert([{
     kunden_name,
@@ -95,6 +104,7 @@ export async function POST(request: NextRequest) {
     fahrzeug,
     problem_beschreibung,
     status,
+    ist_wiederholung,
   }])
 
   if (error) {
@@ -102,6 +112,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
-  console.log('[vapi] ✓ Auftrag gespeichert')
-  return NextResponse.json({ success: true })
+  console.log('[vapi] ✓ Auftrag gespeichert, Wiederholung:', ist_wiederholung)
+  return NextResponse.json({ success: true, ist_wiederholung })
 }

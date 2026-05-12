@@ -16,6 +16,7 @@ export interface Order {
   erstellt_am: string
   geloescht_am: string | null
   loeschgrund: string | null
+  ist_wiederholung: boolean
   freigabe_token: string | null
   freigabe_beschreibung: string | null
   freigabe_foto_url: string | null

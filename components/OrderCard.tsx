@@ -1,6 +1,6 @@
 'use client'
 
-import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order } from '@/lib/types'
 
@@ -44,6 +44,12 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Pro
             )}
             <span className="font-semibold text-zinc-100 truncate">{order.kunden_name}</span>
             <span className="text-zinc-500 text-sm truncate">{order.fahrzeug}</span>
+            {order.ist_wiederholung && !isDeleted && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-orange-950/50 text-orange-300 border-orange-700">
+                <PhoneIncoming size={11} />
+                Rückrufer
+              </span>
+            )}
             <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${color}`}>
               <Icon size={12} />
               {label}
