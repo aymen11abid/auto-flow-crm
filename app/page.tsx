@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, Bot } from 'lucide-react'
-import Link from 'next/link'
+import { Plus, RefreshCw, Wrench, AlertTriangle, Loader } from 'lucide-react'
 import { fetchOrders, softDeleteOrder } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus } from '@/lib/types'
@@ -131,12 +130,6 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/agent"
-              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 px-3 py-2 rounded-lg transition-colors"
-            >
-              <Bot size={15} />
-              Stratege
-            </Link>
             <button onClick={loadOrders}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"
