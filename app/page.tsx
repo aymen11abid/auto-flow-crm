@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, RefreshCw, Wrench, AlertTriangle, Loader } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, LogOut } from 'lucide-react'
 import { fetchOrders, softDeleteOrder, updateOrderStatus } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
+import { supabase } from '@/lib/supabase'
 import type { Order, OrderStatus } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
@@ -23,13 +25,27 @@ const FILTER_TABS: { value: FilterValue; label: string }[] = [
 ]
 
 export default function Dashboard() {
-  const [orders, setOrders]             = useState<Order[]>([])
-  const [loading, setLoading]           = useState(true)
-  const [formOpen, setFormOpen]         = useState(false)
-  const [error, setError]               = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null)
+  const router = useRouter()
+
+  const [authChecked, setAuthChecked]       = useState(false)
+  const [orders, setOrders]                 = useState<Order[]>([])
+  const [loading, setLoading]               = useState(true)
+  const [formOpen, setFormOpen]             = useState(false)
+  const [error, setError]                   = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget]     = useState<Order | null>(null)
   const [freigabeTarget, setFreigabeTarget] = useState<Order | null>(null)
-  const [filter, setFilter]             = useState<FilterValue>('alle')
+  const [filter, setFilter]                 = useState<FilterValue>('alle')
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.replace('/login')
+      } else {
+        setAuthChecked(true)
+        loadOrders()
+      }
+    })
+  }, [router])
 
   async function loadOrders() {
     setLoading(true)
@@ -39,7 +55,10 @@ export default function Dashboard() {
     setLoading(false)
   }
 
-  useEffect(() => { loadOrders() }, [])
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.replace('/login')
+  }
 
   async function handleDelete(reason: string) {
     if (!deleteTarget) return
@@ -99,6 +118,11 @@ export default function Dashboard() {
     }
   }
 
+  // Blank screen while checking auth — prevents flash of dashboard content
+  if (!authChecked) {
+    return <div className="min-h-screen bg-zinc-950" />
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
 
@@ -137,6 +161,12 @@ export default function Dashboard() {
               title="Neu laden"
             >
               <RefreshCw size={16} />
+            </button>
+            <button onClick={handleLogout}
+              className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+              title="Abmelden"
+            >
+              <LogOut size={16} />
             </button>
             <button onClick={() => setFormOpen((v) => !v)}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
