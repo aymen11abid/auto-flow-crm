@@ -27,7 +27,7 @@ export const STATUS_CONFIG: Record<
     color: 'bg-green-900/50 text-green-300 border-green-700',
   },
   eskalation_rueckruf: {
-    label: 'Eskalation / Rückruf',
+    label: 'Rückruf',
     Icon: AlertTriangle,
     color: 'bg-red-900/50 text-red-300 border-red-700',
   },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, RefreshCw, Wrench, AlertTriangle, Loader } from 'lucide-react'
-import { fetchOrders, softDeleteOrder } from '@/lib/db'
+import { fetchOrders, softDeleteOrder, updateOrderStatus } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
@@ -10,12 +10,11 @@ import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
 import FreigabeModal from '@/components/FreigabeModal'
 
-type FilterValue = 'alle' | 'aktiv' | 'geloescht' | OrderStatus
+type FilterValue = 'alle' | 'geloescht' | OrderStatus
 
 const FILTER_TABS: { value: FilterValue; label: string }[] = [
-  { value: 'alle',   label: 'Alle' },
-  { value: 'aktiv',  label: 'Aktiv' },
-  { value: 'eskalation_rueckruf',   label: 'Eskalation' },
+  { value: 'alle',                  label: 'Alle' },
+  { value: 'eskalation_rueckruf',   label: 'Rückruf' },
   { value: 'neu',                   label: 'Neu' },
   { value: 'in_bearbeitung',        label: 'In Bearbeitung' },
   { value: 'warten_auf_freigabe',   label: 'Freigabe' },
@@ -75,14 +74,18 @@ export default function Dashboard() {
     )
   }
 
+  async function handleStatusChange(id: string, status: OrderStatus) {
+    await updateOrderStatus(id, status)
+    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o))
+  }
+
   const escalationCount = orders.filter(
     (o) => o.status === 'eskalation_rueckruf' && !o.geloescht_am
   ).length
 
   const filtered = useMemo(() => {
     switch (filter) {
-      case 'alle':      return orders
-      case 'aktiv':     return orders.filter((o) => !o.geloescht_am)
+      case 'alle':      return orders.filter((o) => !o.geloescht_am)
       case 'geloescht': return orders.filter((o) => !!o.geloescht_am)
       default:          return orders.filter((o) => !o.geloescht_am && o.status === filter)
     }
@@ -90,8 +93,7 @@ export default function Dashboard() {
 
   function countFor(f: FilterValue): number {
     switch (f) {
-      case 'alle':      return orders.length
-      case 'aktiv':     return orders.filter((o) => !o.geloescht_am).length
+      case 'alle':      return orders.filter((o) => !o.geloescht_am).length
       case 'geloescht': return orders.filter((o) => !!o.geloescht_am).length
       default:          return orders.filter((o) => !o.geloescht_am && o.status === f).length
     }
@@ -167,7 +169,7 @@ export default function Dashboard() {
                         : 'bg-zinc-800/60 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200',
                   ].join(' ')}
                 >
-                  {value !== 'alle' && value !== 'aktiv' && value !== 'geloescht' && (
+                  {value !== 'alle' && value !== 'geloescht' && (
                     (() => {
                       const cfg = STATUS_CONFIG[value as OrderStatus]
                       return <cfg.Icon size={11} />
@@ -224,6 +226,7 @@ export default function Dashboard() {
                   order={order}
                   onDeleteClick={setDeleteTarget}
                   onFreigabeClick={setFreigabeTarget}
+                  onStatusChange={handleStatusChange}
                 />
               ))}
             </ul>

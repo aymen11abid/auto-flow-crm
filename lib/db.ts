@@ -24,6 +24,17 @@ export async function createOrder(form: NewOrderForm): Promise<string | null> {
   return error?.message ?? null
 }
 
+export async function updateOrderStatus(
+  id: string,
+  status: import('./types').OrderStatus
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('auftraege')
+    .update({ status })
+    .eq('id', id)
+  return error?.message ?? null
+}
+
 export async function softDeleteOrder(
   id: string,
   reason: string | null

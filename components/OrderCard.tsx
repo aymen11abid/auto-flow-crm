@@ -2,15 +2,16 @@
 
 import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
-import type { Order } from '@/lib/types'
+import type { Order, OrderStatus } from '@/lib/types'
 
 interface Props {
   order: Order
   onDeleteClick: (order: Order) => void
   onFreigabeClick: (order: Order) => void
+  onStatusChange: (id: string, status: OrderStatus) => void
 }
 
-export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Props) {
+export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onStatusChange }: Props) {
   const isEskalation = order.status === 'eskalation_rueckruf'
   const isDeleted    = !!order.geloescht_am
   const { label, color, Icon } = STATUS_CONFIG[order.status]
@@ -50,10 +51,24 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick }: Pro
                 Rückrufer
               </span>
             )}
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${color}`}>
-              <Icon size={12} />
-              {label}
-            </span>
+            {isDeleted ? (
+              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${color}`}>
+                <Icon size={12} />
+                {label}
+              </span>
+            ) : (
+              <select
+                value={order.status}
+                onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
+                className={`text-xs px-2 py-0.5 rounded-full border font-medium cursor-pointer ${color}`}
+              >
+                {(Object.keys(STATUS_CONFIG) as OrderStatus[]).map((s) => (
+                  <option key={s} value={s} className="bg-zinc-900 text-zinc-100">
+                    {STATUS_CONFIG[s].label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <p className="text-sm text-zinc-400 line-clamp-2">{order.problem_beschreibung}</p>
