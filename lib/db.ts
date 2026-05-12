@@ -85,7 +85,7 @@ export async function resolveFreigabe(
   token: string,
   result: 'approved' | 'rejected'
 ): Promise<string | null> {
-  const newStatus = result === 'approved' ? 'abgeschlossen' : 'eskalation_rueckruf'
+  const newStatus = result === 'approved' ? 'in_bearbeitung' : 'eskalation_rueckruf'
   const { error } = await supabase
     .from('auftraege')
     .update({ freigabe_ergebnis: result, status: newStatus })
