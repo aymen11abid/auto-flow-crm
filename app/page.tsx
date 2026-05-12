@@ -1,14 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, Bot } from 'lucide-react'
 import Link from 'next/link'
 import { fetchOrders, softDeleteOrder } from '@/lib/db'
-import type { Order } from '@/lib/types'
+import { STATUS_CONFIG } from '@/lib/constants'
+import type { Order, OrderStatus } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
 import FreigabeModal from '@/components/FreigabeModal'
+
+type FilterValue = 'alle' | 'aktiv' | 'geloescht' | OrderStatus
+
+const FILTER_TABS: { value: FilterValue; label: string }[] = [
+  { value: 'alle',   label: 'Alle' },
+  { value: 'aktiv',  label: 'Aktiv' },
+  { value: 'eskalation_rueckruf',   label: 'Eskalation' },
+  { value: 'neu',                   label: 'Neu' },
+  { value: 'in_bearbeitung',        label: 'In Bearbeitung' },
+  { value: 'warten_auf_freigabe',   label: 'Freigabe' },
+  { value: 'abgeschlossen',         label: 'Abgeschlossen' },
+  { value: 'geloescht',             label: 'Gelöscht' },
+]
 
 export default function Dashboard() {
   const [orders, setOrders]             = useState<Order[]>([])
@@ -17,6 +31,7 @@ export default function Dashboard() {
   const [error, setError]               = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null)
   const [freigabeTarget, setFreigabeTarget] = useState<Order | null>(null)
+  const [filter, setFilter]             = useState<FilterValue>('alle')
 
   async function loadOrders() {
     setLoading(true)
@@ -64,6 +79,24 @@ export default function Dashboard() {
   const escalationCount = orders.filter(
     (o) => o.status === 'eskalation_rueckruf' && !o.geloescht_am
   ).length
+
+  const filtered = useMemo(() => {
+    switch (filter) {
+      case 'alle':      return orders
+      case 'aktiv':     return orders.filter((o) => !o.geloescht_am)
+      case 'geloescht': return orders.filter((o) => !!o.geloescht_am)
+      default:          return orders.filter((o) => !o.geloescht_am && o.status === filter)
+    }
+  }, [orders, filter])
+
+  function countFor(f: FilterValue): number {
+    switch (f) {
+      case 'alle':      return orders.length
+      case 'aktiv':     return orders.filter((o) => !o.geloescht_am).length
+      case 'geloescht': return orders.filter((o) => !!o.geloescht_am).length
+      default:          return orders.filter((o) => !o.geloescht_am && o.status === f).length
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -118,6 +151,44 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* Filter tabs */}
+        {!loading && orders.length > 0 && (
+          <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-1.5 overflow-x-auto scrollbar-none">
+            {FILTER_TABS.map(({ value, label }) => {
+              const count  = countFor(value)
+              const active = filter === value
+              const isEsk  = value === 'eskalation_rueckruf'
+              return (
+                <button
+                  key={value}
+                  onClick={() => setFilter(value)}
+                  className={[
+                    'flex items-center gap-1.5 whitespace-nowrap text-xs font-medium px-3 py-1.5 rounded-full border transition-colors shrink-0',
+                    active
+                      ? isEsk
+                        ? 'bg-red-600 border-red-500 text-white'
+                        : 'bg-orange-500 border-orange-400 text-white'
+                      : isEsk && count > 0
+                        ? 'bg-red-950/40 border-red-800 text-red-400 hover:border-red-600'
+                        : 'bg-zinc-800/60 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200',
+                  ].join(' ')}
+                >
+                  {value !== 'alle' && value !== 'aktiv' && value !== 'geloescht' && (
+                    (() => {
+                      const cfg = STATUS_CONFIG[value as OrderStatus]
+                      return <cfg.Icon size={11} />
+                    })()
+                  )}
+                  {label}
+                  <span className={active ? 'opacity-70' : 'text-zinc-600'}>
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -137,7 +208,10 @@ export default function Dashboard() {
 
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-            Aufträge {!loading && <span className="text-zinc-600">({orders.length})</span>}
+            {FILTER_TABS.find((t) => t.value === filter)?.label ?? 'Aufträge'}
+            {!loading && (
+              <span className="text-zinc-600 ml-1.5">({filtered.length})</span>
+            )}
           </h2>
 
           {loading ? (
@@ -145,13 +219,13 @@ export default function Dashboard() {
               <Loader size={20} className="animate-spin mr-2" />
               Lade Aufträge...
             </div>
-          ) : orders.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-zinc-600 text-sm">
-              Noch keine Aufträge vorhanden.
+              Keine Aufträge in dieser Kategorie.
             </div>
           ) : (
             <ul className="space-y-3">
-              {orders.map((order) => (
+              {filtered.map((order) => (
                 <OrderCard
                   key={order.id}
                   order={order}
