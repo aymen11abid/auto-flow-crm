@@ -33,6 +33,13 @@ export type NewOrderForm = Pick<
   'kunden_name' | 'kunden_telefonnummer' | 'fahrzeug' | 'problem_beschreibung' | 'status'
 >
 
+export interface Kommentar {
+  id: string
+  auftrag_id: string
+  text: string
+  erstellt_am: string
+}
+
 export interface FreigabeForm {
   beschreibung: string
   foto_url: string

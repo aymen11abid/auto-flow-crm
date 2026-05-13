@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus } from '@/lib/types'
@@ -12,8 +13,9 @@ interface Props {
 }
 
 export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onStatusChange }: Props) {
-  const isEskalation = order.status === 'eskalation_rueckruf'
-  const isDeleted    = !!order.geloescht_am
+  const router        = useRouter()
+  const isEskalation  = order.status === 'eskalation_rueckruf'
+  const isDeleted     = !!order.geloescht_am
   const { label, color, Icon } = STATUS_CONFIG[order.status]
 
   const hasFreigabe        = !!order.freigabe_token
@@ -23,13 +25,14 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
 
   return (
     <li
+      onClick={() => !isDeleted && router.push(`/auftraege/${order.id}`)}
       className={[
         'rounded-xl border p-4 transition-all',
         isDeleted
           ? 'bg-zinc-900/40 border-zinc-800 opacity-50 grayscale'
           : isEskalation
-            ? 'bg-red-950/30 border-red-600 shadow-[0_0_0_2px_rgba(220,38,38,0.4)] animate-pulse-border'
-            : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700',
+            ? 'bg-red-950/30 border-red-600 shadow-[0_0_0_2px_rgba(220,38,38,0.4)] animate-pulse-border cursor-pointer'
+            : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 cursor-pointer',
       ].join(' ')}
     >
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
@@ -60,6 +63,7 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
               <select
                 value={order.status}
                 onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
+                onClick={(e) => e.stopPropagation()}
                 className={`text-xs px-2 py-0.5 rounded-full border font-medium cursor-pointer ${color}`}
               >
                 {(Object.keys(STATUS_CONFIG) as OrderStatus[]).map((s) => (
@@ -123,7 +127,7 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
 
         {/* Actions */}
         {!isDeleted && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
             {!freigabeApproved && !freigabeRejected && (
               <button
                 onClick={() => onFreigabeClick(order)}

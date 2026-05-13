@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm } from './types'
+import type { Order, NewOrderForm, Kommentar } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -90,5 +90,36 @@ export async function resolveFreigabe(
     .from('auftraege')
     .update({ freigabe_ergebnis: result, status: newStatus })
     .eq('freigabe_token', token)
+  return error?.message ?? null
+}
+
+export async function fetchOrderById(
+  id: string
+): Promise<{ order: Order | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('auftraege')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return { order: null, error: error.message }
+  return { order: data, error: null }
+}
+
+export async function fetchKommentare(auftragId: string): Promise<Kommentar[]> {
+  const { data } = await supabase
+    .from('kommentare')
+    .select('*')
+    .eq('auftrag_id', auftragId)
+    .order('erstellt_am', { ascending: true })
+  return data ?? []
+}
+
+export async function createKommentar(
+  auftragId: string,
+  text: string
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('kommentare')
+    .insert([{ auftrag_id: auftragId, text }])
   return error?.message ?? null
 }
