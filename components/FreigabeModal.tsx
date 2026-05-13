@@ -18,7 +18,7 @@ export default function FreigabeModal({ order, onClose, onSuccess }: Props) {
   const [copied, setCopied]   = useState(false)
 
   const freigabeUrl = token
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/freigabe/${token}`
+    ? `${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/freigabe/${token}`
     : ''
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

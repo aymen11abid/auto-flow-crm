@@ -45,7 +45,7 @@ Phase 4 - Lueckenloses Sicherheitsnetz (GEBAUT)
 - GitHub: github.com/aymen11abid/auto-flow-crm
 
 **Aktueller Stand (Mai 2026):**
-- Dashboard live: auto-flow-crm-psi.vercel.app
+- Dashboard live: voxaro.vercel.app
 - Vapi.ai Webhook funktioniert: Daten fliessen automatisch ins Dashboard
 - AUSSTEHEND: Deutsche Telefonnummer via Twilio
 - AUSSTEHEND: SMS Freigabe-Link fuer Kunden (Phase 3)
