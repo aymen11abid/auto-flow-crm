@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Wrench, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
+import VoxaroLogo from '@/components/VoxaroLogo'
 import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
@@ -33,10 +34,9 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/30">
-            <Wrench size={22} className="text-orange-400" />
+          <div className="flex justify-center">
+            <VoxaroLogo size="lg" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Auto-Flow CRM</h1>
           <p className="text-sm text-zinc-500">Melde dich an um fortzufahren</p>
         </div>
 

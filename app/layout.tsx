@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auto-Flow CRM",
-  description: "Werkstatt Auftragsmanagement",
+  title: "Voxaro — KI Werkstatt Assistent",
+  description: "Voice AI Platform für Kfz-Werkstätten. Kein Anruf geht verloren.",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23FF6B00' d='M13 2L4.5 13.5H11L9 22L19.5 10H13L13 2Z'/></svg>",
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="de"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

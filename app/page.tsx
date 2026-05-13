@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, Wrench, AlertTriangle, Loader, LogOut } from 'lucide-react'
+import { Plus, RefreshCw, AlertTriangle, Loader, LogOut } from 'lucide-react'
+import VoxaroLogo from '@/components/VoxaroLogo'
 import { fetchOrders, softDeleteOrder, updateOrderStatus } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
@@ -146,8 +147,7 @@ export default function Dashboard() {
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Wrench size={22} className="text-orange-400" />
-            <span className="text-lg font-bold tracking-tight">Auto-Flow CRM</span>
+            <VoxaroLogo size="sm" />
             {escalationCount > 0 && (
               <span className="flex items-center gap-1 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
                 <AlertTriangle size={11} />

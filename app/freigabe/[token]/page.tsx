@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, XCircle, Loader, Wrench, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader, AlertTriangle } from 'lucide-react'
+import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order } from '@/lib/types'
 
 type PageState = 'loading' | 'ready' | 'not_found' | 'already_resolved' | 'submitting' | 'approved' | 'rejected' | 'error'
@@ -54,9 +55,8 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm space-y-6">
-          <div className="flex items-center justify-center gap-2 text-orange-400 mb-2">
-            <Wrench size={20} />
-            <span className="font-bold text-sm tracking-tight">Auto-Flow CRM</span>
+          <div className="flex justify-center mb-2">
+            <VoxaroLogo size="sm" />
           </div>
           {children}
         </div>
