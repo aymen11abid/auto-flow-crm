@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
   const { token, error } = await createFreigabeBatch(orderId, parsed, order.freigabe_token ?? null)
   if (error) return NextResponse.json({ error }, { status: 500 })
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://voxaro.vercel.app')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://voxaro.vercel.app'
   const link = `${appUrl}/freigabe/${token}`
   await sendSms(
     order.kunden_telefonnummer,
