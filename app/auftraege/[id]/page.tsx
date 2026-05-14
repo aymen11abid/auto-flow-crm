@@ -4,9 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, AlertTriangle, Loader,
-  CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare,
+  CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
 } from 'lucide-react'
-import { fetchOrderById, fetchKommentare, createKommentar } from '@/lib/db'
+import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
@@ -24,6 +24,9 @@ export default function AuftragDetailPage() {
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState<string | null>(null)
   const textareaRef                 = useRef<HTMLTextAreaElement>(null)
+  const [editing, setEditing]       = useState(false)
+  const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,6 +41,29 @@ export default function AuftragDetailPage() {
       )
     })
   }, [id, router])
+
+  function startEdit() {
+    if (!order) return
+    setEditForm({
+      kunden_telefonnummer: order.kunden_telefonnummer,
+      fahrzeug:             order.fahrzeug,
+      problem_beschreibung: order.problem_beschreibung,
+    })
+    setEditing(true)
+  }
+
+  async function handleSaveEdit() {
+    if (!order || savingEdit) return
+    setSavingEdit(true)
+    const err = await updateOrderFields(order.id, editForm)
+    if (err) {
+      setError(err)
+    } else {
+      setOrder({ ...order, ...editForm })
+      setEditing(false)
+    }
+    setSavingEdit(false)
+  }
 
   async function handleAddKommentar() {
     const text = kommentarText.trim()
@@ -80,6 +106,23 @@ export default function AuftragDetailPage() {
           <ChevronLeft size={20} />
         </button>
         <VoxaroLogo size="sm" />
+        <div className="ml-auto">
+          {editing ? (
+            <div className="flex gap-2">
+              <button onClick={() => setEditing(false)} className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors">
+                Abbrechen
+              </button>
+              <button onClick={handleSaveEdit} disabled={savingEdit} className="text-xs px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white font-medium transition-colors">
+                {savingEdit ? <Loader size={12} className="animate-spin" /> : 'Speichern'}
+              </button>
+            </div>
+          ) : (
+            <button onClick={startEdit} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors">
+              <Pencil size={13} />
+              Bearbeiten
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
@@ -114,22 +157,52 @@ export default function AuftragDetailPage() {
 
         {/* Kontakt */}
         <Section title="Kontakt">
-          <a
-            href={`tel:${order.kunden_telefonnummer}`}
-            className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl px-4 py-3 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-              <Phone size={15} className="text-orange-400" />
-            </div>
-            <span className="text-sm font-medium">{order.kunden_telefonnummer || '—'}</span>
-          </a>
+          {editing ? (
+            <input
+              type="tel"
+              value={editForm.kunden_telefonnummer}
+              onChange={(e) => setEditForm({ ...editForm, kunden_telefonnummer: e.target.value })}
+              className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+            />
+          ) : (
+            <a
+              href={`tel:${order.kunden_telefonnummer}`}
+              className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl px-4 py-3 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                <Phone size={15} className="text-orange-400" />
+              </div>
+              <span className="text-sm font-medium">{order.kunden_telefonnummer || '—'}</span>
+            </a>
+          )}
         </Section>
+
+        {/* Fahrzeug */}
+        {editing && (
+          <Section title="Fahrzeug">
+            <input
+              type="text"
+              value={editForm.fahrzeug}
+              onChange={(e) => setEditForm({ ...editForm, fahrzeug: e.target.value })}
+              className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+            />
+          </Section>
+        )}
 
         {/* Problembeschreibung */}
         <Section title="Problembeschreibung">
-          <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-            {order.problem_beschreibung || '—'}
-          </p>
+          {editing ? (
+            <textarea
+              rows={3}
+              value={editForm.problem_beschreibung}
+              onChange={(e) => setEditForm({ ...editForm, problem_beschreibung: e.target.value })}
+              className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none resize-none"
+            />
+          ) : (
+            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {order.problem_beschreibung || '—'}
+            </p>
+          )}
         </Section>
 
         {/* Wunschtermin & Rückruf */}
