@@ -15,6 +15,14 @@ Deine Aufgaben:
 - Blockers erkennen und eskalieren
 - Sprint-Status zusammenfassen
 
+## Zuletzt abgeschlossen (2026-05-14/15)
+✅ Ticket #5 — Samir: Kunden-Statusabfrage per Anruf
+  - Tool check_auftrag_status → sucht per Telefonnummer, Fallback per Auto-Marke/Kennzeichen
+  - Badge "Kunde informiert" auf OrderCard wenn Status mitgeteilt
+  - SQL: status_abgefragt_am Spalte in auftraege
+  - Samir System Prompt mit Pflicht-Verabschiedung und Fallback-Flow
+  - Multi-Tenant: Werkstatt-Lookup per angerufener Nummer
+
 Kommuniziere immer strukturiert:
 ✅ Abgeschlossen | 🔄 In Arbeit | ⏳ Offen | 🚨 Blockiert
 
