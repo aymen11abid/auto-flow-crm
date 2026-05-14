@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     console.log('[voxaro] Freigabe-SMS erneut gesendet an:', order.kunden_telefonnummer)
   }
 
+  await db.from('auftraege').update({ status_abgefragt_am: new Date().toISOString() }).eq('id', order.id)
   console.log('[voxaro] order-lookup: Auftrag gefunden, Status:', order.status)
 
   return vapiResult(STATUS_MESSAGES[order.status] ?? 'Wir schauen nach dem Status Ihres Fahrzeugs.')

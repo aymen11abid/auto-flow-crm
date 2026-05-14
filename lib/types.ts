@@ -27,6 +27,7 @@ export interface Order {
   freigabe_betrag: number | null
   freigabe_angefragt_am: string | null
   freigabe_ergebnis: 'approved' | 'rejected' | null
+  status_abgefragt_am: string | null
 }
 
 export type NewOrderForm = Pick<

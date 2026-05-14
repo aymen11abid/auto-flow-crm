@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus } from '@/lib/types'
 
@@ -93,6 +93,14 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
               {order.rueckruf_wunsch === 'nachmittags' && <Sunset size={11} className="text-orange-400" />}
               {order.rueckruf_wunsch === 'egal' && <Phone size={11} />}
               Rückruf {order.rueckruf_wunsch}
+            </span>
+          )}
+
+          {/* Status abgefragt */}
+          {order.status_abgefragt_am && !isDeleted && !isEskalation && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-zinc-800 text-zinc-400 border-zinc-700">
+              <PhoneCall size={11} />
+              Kunde informiert · {new Date(order.status_abgefragt_am).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
 
