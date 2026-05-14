@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
   if (!werkstatt) {
     console.warn('[voxaro] order-lookup: keine Werkstatt für Nummer:', angerufene_nummer)
-    return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
+    return vapiResult('Leider kann ich den Status gerade nicht abrufen. Ein Kollege wird Sie in Kürze zurückrufen.')
   }
 
   const werkstatt_id = werkstatt.id
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (!order) {
       console.log('[voxaro] order-lookup: kein Auftrag per Kennzeichen gefunden →', kennzeichen)
       await db.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
-      return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
+      return vapiResult('Leider kann ich den Status gerade nicht abrufen. Ein Kollege wird Sie in Kürze zurückrufen.')
     }
   }
 
