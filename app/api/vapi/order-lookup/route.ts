@@ -69,8 +69,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const telefonnummer    = String(body.telefonnummer    ?? '').trim()
-  const angerufene_nummer = String(body.angerufene_nummer ?? '').trim()
+  // Vapi schickt Parameter in message.toolCallList[0].function.arguments
+  // Vapi schickt Parameter in message.toolCallList[0].function.arguments
+  const vapiArgs = ((
+    (body?.message as Record<string, unknown>)?.toolCallList as Record<string, unknown>[]
+  )?.[0]?.function as Record<string, unknown>)?.arguments as Record<string, unknown> | undefined
+
+  const telefonnummer     = String(vapiArgs?.telefonnummer     ?? body.telefonnummer     ?? '').trim()
+  const angerufene_nummer = String(vapiArgs?.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
 
   if (!telefonnummer || !angerufene_nummer) {
     return NextResponse.json({ error: 'telefonnummer und angerufene_nummer erforderlich' }, { status: 400 })
