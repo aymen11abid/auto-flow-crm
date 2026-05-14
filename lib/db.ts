@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm, Kommentar, StatusAnfrage } from './types'
+import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -131,6 +131,66 @@ export async function createKommentar(
     .from('kommentare')
     .insert([{ auftrag_id: auftragId, text }])
   return error?.message ?? null
+}
+
+export async function createFreigabeBatch(
+  auftragId: string,
+  positionen: { beschreibung: string; betrag: number | null }[],
+  existingToken: string | null
+): Promise<{ token: string; error: string | null }> {
+  const token = existingToken ?? crypto.randomUUID().replace(/-/g, '').slice(0, 24)
+
+  if (!existingToken) {
+    const { error } = await supabase
+      .from('auftraege')
+      .update({ freigabe_token: token, status: 'warten_auf_freigabe' })
+      .eq('id', auftragId)
+    if (error) return { token: '', error: error.message }
+  } else {
+    await supabase.from('auftraege').update({ status: 'warten_auf_freigabe' }).eq('id', auftragId)
+  }
+
+  const rows = positionen.map((p) => ({
+    auftrag_id:  auftragId,
+    batch_token: token,
+    beschreibung: p.beschreibung,
+    betrag:       p.betrag,
+  }))
+
+  const { error } = await supabase.from('freigaben').insert(rows)
+  if (error) return { token: '', error: error.message }
+  return { token, error: null }
+}
+
+export async function fetchFreigabenByToken(token: string): Promise<Freigabe[]> {
+  const { data } = await supabase
+    .from('freigaben')
+    .select('*')
+    .eq('batch_token', token)
+    .order('erstellt_am', { ascending: true })
+  return data ?? []
+}
+
+export async function resolveFreigabePosition(
+  freigabeId: string,
+  batchToken: string,
+  result: 'approved' | 'rejected'
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('freigaben')
+    .update({ ergebnis: result, entschieden_am: new Date().toISOString() })
+    .eq('id', freigabeId)
+    .eq('batch_token', batchToken)
+  return error?.message ?? null
+}
+
+export async function fetchFreigabenByAuftrag(auftragId: string): Promise<Freigabe[]> {
+  const { data } = await supabase
+    .from('freigaben')
+    .select('*')
+    .eq('auftrag_id', auftragId)
+    .order('erstellt_am', { ascending: true })
+  return data ?? []
 }
 
 export async function fetchStatusAnfragen(werkstatt_id: string): Promise<StatusAnfrage[]> {

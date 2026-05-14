@@ -5,12 +5,15 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
+  Plus, Trash2, Send,
 } from 'lucide-react'
-import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields } from '@/lib/db'
+import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import type { Order, Kommentar } from '@/lib/types'
+import type { Order, Kommentar, Freigabe } from '@/lib/types'
+
+type Position = { beschreibung: string; betrag: string }
 
 export default function AuftragDetailPage() {
   const params  = useParams()
@@ -27,20 +30,60 @@ export default function AuftragDetailPage() {
   const [editing, setEditing]       = useState(false)
   const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '' })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [freigaben, setFreigaben]   = useState<Freigabe[]>([])
+  const [showModal, setShowModal]   = useState(false)
+  const [positionen, setPositionen] = useState<Position[]>([{ beschreibung: '', betrag: '' }])
+  const [sending, setSending]       = useState(false)
+  const [sendError, setSendError]   = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.replace('/login'); return }
-      Promise.all([fetchOrderById(id), fetchKommentare(id)]).then(
-        ([{ order, error }, kommentare]) => {
+      Promise.all([fetchOrderById(id), fetchKommentare(id), fetchFreigabenByAuftrag(id)]).then(
+        ([{ order, error }, kommentare, freigaben]) => {
           if (error || !order) { router.replace('/'); return }
           setOrder(order)
           setKommentare(kommentare)
+          setFreigaben(freigaben)
           setLoadingPage(false)
         }
       )
     })
   }, [id, router])
+
+  function openModal() {
+    setPositionen([{ beschreibung: '', betrag: '' }])
+    setSendError(null)
+    setShowModal(true)
+  }
+
+  async function handleSendFreigabe() {
+    if (!order || sending) return
+    const valid = positionen.filter((p) => p.beschreibung.trim())
+    if (!valid.length) { setSendError('Mindestens eine Beschreibung erforderlich.'); return }
+    setSending(true)
+    setSendError(null)
+    const res = await fetch('/api/freigabe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: order.id,
+        positionen: valid.map((p) => ({
+          beschreibung: p.beschreibung.trim(),
+          betrag: p.betrag.trim() || null,
+        })),
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSendError(data.error ?? 'Fehler beim Senden.')
+    } else {
+      const fresh = await fetchFreigabenByAuftrag(order.id)
+      setFreigaben(fresh)
+      setShowModal(false)
+    }
+    setSending(false)
+  }
 
   function startEdit() {
     if (!order) return
@@ -227,33 +270,42 @@ export default function AuftragDetailPage() {
           </Section>
         )}
 
-        {/* Freigabe */}
-        {order.freigabe_token && (
-          <Section title="Freigabe">
-            <div className={[
-              'flex items-center gap-2 text-sm px-3 py-2 rounded-xl border',
-              order.freigabe_ergebnis === 'approved'
-                ? 'bg-green-950/50 border-green-800 text-green-300'
-                : order.freigabe_ergebnis === 'rejected'
-                  ? 'bg-red-950/50 border-red-800 text-red-300'
-                  : 'bg-yellow-950/40 border-yellow-800 text-yellow-300',
-            ].join(' ')}>
-              {order.freigabe_ergebnis === 'approved' && <CheckCircle2 size={15} />}
-              {order.freigabe_ergebnis === 'rejected' && <XCircle size={15} />}
-              {!order.freigabe_ergebnis && <Clock size={15} className="animate-pulse" />}
-              <span className="font-medium">
-                {order.freigabe_ergebnis === 'approved' ? 'Freigegeben' :
-                 order.freigabe_ergebnis === 'rejected' ? 'Abgelehnt' : 'Ausstehend'}
-              </span>
-              {order.freigabe_betrag && (
-                <span className="ml-auto font-bold">{order.freigabe_betrag.toFixed(2)} €</span>
-              )}
-            </div>
-            {order.freigabe_beschreibung && (
-              <p className="text-xs text-zinc-500 mt-2 leading-relaxed">{order.freigabe_beschreibung}</p>
-            )}
-          </Section>
-        )}
+        {/* Zusatzarbeiten */}
+        <Section title="Zusatzarbeiten">
+          {freigaben.length === 0 ? (
+            <p className="text-xs text-zinc-600 py-1">Noch keine Zusatzarbeiten angefragt.</p>
+          ) : (
+            <ul className="space-y-2">
+              {freigaben.map((f) => (
+                <li key={f.id} className={[
+                  'flex items-start gap-3 rounded-xl px-3 py-2.5 border text-sm',
+                  f.ergebnis === 'approved'
+                    ? 'bg-green-950/30 border-green-800 text-green-300'
+                    : f.ergebnis === 'rejected'
+                      ? 'bg-zinc-800/60 border-zinc-700 text-zinc-500'
+                      : 'bg-yellow-950/30 border-yellow-800 text-yellow-300',
+                ].join(' ')}>
+                  {f.ergebnis === 'approved' && <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
+                  {f.ergebnis === 'rejected' && <XCircle size={14} className="shrink-0 mt-0.5" />}
+                  {!f.ergebnis && <Clock size={14} className="shrink-0 mt-0.5 animate-pulse" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="leading-snug">{f.beschreibung}</p>
+                    {f.betrag != null && (
+                      <p className="text-xs mt-0.5 opacity-70">{f.betrag.toFixed(2)} €</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            onClick={openModal}
+            className="mt-1 flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-white font-medium transition-colors"
+          >
+            <Plus size={13} />
+            Zusatzarbeit anfragen
+          </button>
+        </Section>
 
         {/* Foto */}
         {order.foto_url && (
@@ -330,6 +382,81 @@ export default function AuftragDetailPage() {
         )}
 
       </div>
+
+      {/* Zusatzarbeit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-4 sm:pb-0">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-zinc-100">Zusatzarbeiten anfragen</h2>
+
+            <ul className="space-y-3">
+              {positionen.map((p, i) => (
+                <li key={i} className="flex gap-2 items-start">
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="text"
+                      placeholder="Beschreibung der Arbeit"
+                      value={p.beschreibung}
+                      onChange={(e) => {
+                        const next = [...positionen]
+                        next[i] = { ...next[i], beschreibung: e.target.value }
+                        setPositionen(next)
+                      }}
+                      className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Betrag (€) optional"
+                      value={p.betrag}
+                      onChange={(e) => {
+                        const next = [...positionen]
+                        next[i] = { ...next[i], betrag: e.target.value }
+                        setPositionen(next)
+                      }}
+                      className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+                    />
+                  </div>
+                  {positionen.length > 1 && (
+                    <button
+                      onClick={() => setPositionen(positionen.filter((_, j) => j !== i))}
+                      className="mt-1.5 p-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => setPositionen([...positionen, { beschreibung: '', betrag: '' }])}
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              <Plus size={13} />
+              Position hinzufügen
+            </button>
+
+            {sendError && <p className="text-red-400 text-xs">{sendError}</p>}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 text-sm py-2.5 rounded-xl bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSendFreigabe}
+                disabled={sending}
+                className="flex-1 flex items-center justify-center gap-1.5 text-sm py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white font-medium transition-colors"
+              >
+                {sending ? <Loader size={14} className="animate-spin" /> : <Send size={14} />}
+                Per SMS senden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

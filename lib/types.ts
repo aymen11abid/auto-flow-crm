@@ -48,6 +48,18 @@ export interface FreigabeForm {
   betrag: string
 }
 
+export interface Freigabe {
+  id: string
+  auftrag_id: string
+  batch_token: string
+  beschreibung: string
+  betrag: number | null
+  foto_url: string | null
+  ergebnis: 'approved' | 'rejected' | null
+  erstellt_am: string
+  entschieden_am: string | null
+}
+
 export interface StatusAnfrage {
   id: string
   werkstatt_id: string
