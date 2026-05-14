@@ -7,11 +7,12 @@ import { EMPTY_ORDER_FORM, STATUS_CONFIG } from '@/lib/constants'
 import type { OrderStatus } from '@/lib/types'
 
 interface Props {
+  werkstattId: string
   onSuccess: () => void
   onCancel: () => void
 }
 
-export default function OrderForm({ onSuccess, onCancel }: Props) {
+export default function OrderForm({ werkstattId, onSuccess, onCancel }: Props) {
   const [form, setForm]         = useState(EMPTY_ORDER_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]       = useState<string | null>(null)
@@ -20,7 +21,7 @@ export default function OrderForm({ onSuccess, onCancel }: Props) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-    const err = await createOrder(form)
+    const err = await createOrder(form, werkstattId)
     if (err) {
       setError(err)
     } else {

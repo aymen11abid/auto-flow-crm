@@ -7,6 +7,7 @@ export type OrderStatus =
 
 export interface Order {
   id: string
+  werkstatt_id: string
   kunden_name: string
   kunden_telefonnummer: string
   fahrzeug: string

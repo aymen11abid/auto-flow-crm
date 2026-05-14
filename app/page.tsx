@@ -29,6 +29,7 @@ export default function Dashboard() {
   const router = useRouter()
 
   const [authChecked, setAuthChecked]       = useState(false)
+  const [werkstattId, setWerkstattId]       = useState<string>('')
   const [orders, setOrders]                 = useState<Order[]>([])
   const [loading, setLoading]               = useState(true)
   const [formOpen, setFormOpen]             = useState(false)
@@ -42,15 +43,17 @@ export default function Dashboard() {
       if (!session) {
         router.replace('/login')
       } else {
+        const wid = session.user.user_metadata?.werkstatt_id as string ?? ''
+        setWerkstattId(wid)
         setAuthChecked(true)
-        loadOrders()
+        loadOrders(wid)
       }
     })
   }, [router])
 
-  async function loadOrders() {
+  async function loadOrders(wid = werkstattId) {
     setLoading(true)
-    const { orders, error } = await fetchOrders()
+    const { orders, error } = await fetchOrders(wid)
     if (error) setError(error)
     else setOrders(orders)
     setLoading(false)
@@ -156,7 +159,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={loadOrders}
+            <button onClick={() => loadOrders()}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"
             >
@@ -226,6 +229,7 @@ export default function Dashboard() {
 
         {formOpen && (
           <OrderForm
+            werkstattId={werkstattId}
             onSuccess={() => { setFormOpen(false); loadOrders() }}
             onCancel={() => setFormOpen(false)}
           />

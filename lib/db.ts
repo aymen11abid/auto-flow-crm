@@ -9,18 +9,19 @@ function sortOrders(orders: Order[]): Order[] {
   ]
 }
 
-export async function fetchOrders(): Promise<{ orders: Order[]; error: string | null }> {
+export async function fetchOrders(werkstatt_id: string): Promise<{ orders: Order[]; error: string | null }> {
   const { data, error } = await supabase
     .from('auftraege')
     .select('*')
+    .eq('werkstatt_id', werkstatt_id)
     .order('erstellt_am', { ascending: false })
 
   if (error) return { orders: [], error: error.message }
   return { orders: sortOrders(data ?? []), error: null }
 }
 
-export async function createOrder(form: NewOrderForm): Promise<string | null> {
-  const { error } = await supabase.from('auftraege').insert([form])
+export async function createOrder(form: NewOrderForm, werkstatt_id: string): Promise<string | null> {
+  const { error } = await supabase.from('auftraege').insert([{ ...form, werkstatt_id }])
   return error?.message ?? null
 }
 
