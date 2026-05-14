@@ -72,7 +72,10 @@ export async function POST(request: NextRequest) {
   const toolCallList  = (body?.message as Record<string, unknown>)?.toolCallList as Record<string, unknown>[] | undefined
   const toolCall      = toolCallList?.[0] ?? {}
   const toolCallId    = String(toolCall.id ?? '')
-  const vapiArgs      = (toolCall.arguments ?? {}) as Record<string, unknown>
+  const rawArgs       = toolCall.arguments ?? {}
+  const vapiArgs      = (typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs) as Record<string, unknown>
+
+  console.log('[voxaro] toolCall:', JSON.stringify(toolCall))
 
   const telefonnummer     = String(vapiArgs.telefonnummer     ?? body.telefonnummer     ?? '').trim()
   const angerufene_nummer = String(vapiArgs.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
