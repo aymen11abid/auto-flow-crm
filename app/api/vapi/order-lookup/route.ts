@@ -56,7 +56,6 @@ const STATUS_MESSAGES: Record<string, string> = {
 }
 
 export async function POST(request: NextRequest) {
-  // Einfache Secret-Authentifizierung für Vapi
   const secret = request.headers.get('x-vapi-secret')
   if (secret !== process.env.VAPI_WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -69,24 +68,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Vapi schickt Parameter in message.toolCallList[0].function.arguments
-  // Vapi schickt Parameter in message.toolCallList[0].function.arguments
-  const vapiArgs = ((
-    (body?.message as Record<string, unknown>)?.toolCallList as Record<string, unknown>[]
-  )?.[0]?.function as Record<string, unknown>)?.arguments as Record<string, unknown> | undefined
+  // Laut docs.vapi.ai/tools/custom-tools: message.toolCallList[0].id + .arguments
+  const toolCallList  = (body?.message as Record<string, unknown>)?.toolCallList as Record<string, unknown>[] | undefined
+  const toolCall      = toolCallList?.[0] ?? {}
+  const toolCallId    = String(toolCall.id ?? '')
+  const vapiArgs      = (toolCall.arguments ?? {}) as Record<string, unknown>
 
-  const telefonnummer     = String(vapiArgs?.telefonnummer     ?? body.telefonnummer     ?? '').trim()
-  const angerufene_nummer = String(vapiArgs?.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
+  const telefonnummer     = String(vapiArgs.telefonnummer     ?? body.telefonnummer     ?? '').trim()
+  const angerufene_nummer = String(vapiArgs.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
 
-  if (!telefonnummer || !angerufene_nummer) {
-    return NextResponse.json({ error: 'telefonnummer und angerufene_nummer erforderlich' }, { status: 400 })
+  // Laut docs.vapi.ai/tools/custom-tools: { results: [{ toolCallId, result }] }
+  function vapiResult(result: string) {
+    return NextResponse.json(
+      toolCallId ? { results: [{ toolCallId, result }] } : { result }
+    )
   }
 
   console.log('[voxaro] order-lookup:', telefonnummer, 'angerufene Nummer:', angerufene_nummer)
 
+  if (!telefonnummer || !angerufene_nummer) {
+    return vapiResult('Ich konnte den Auftragsstatus leider nicht prüfen.')
+  }
+
   const db = getSupabase()
 
-  // Werkstatt anhand der angerufenen Twilio-Nummer ermitteln
   const { data: werkstatt } = await db
     .from('werkstaetten')
     .select('id')
@@ -95,10 +100,7 @@ export async function POST(request: NextRequest) {
 
   if (!werkstatt) {
     console.warn('[voxaro] order-lookup: keine Werkstatt für Nummer:', angerufene_nummer)
-    return NextResponse.json({
-      found:   false,
-      message: 'Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.',
-    })
+    return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
   }
 
   const werkstatt_id = werkstatt.id
@@ -117,14 +119,9 @@ export async function POST(request: NextRequest) {
   if (!order) {
     console.log('[voxaro] order-lookup: kein Auftrag gefunden →', telefonnummer)
     await db.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
-
-    return NextResponse.json({
-      found:   false,
-      message: 'Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.',
-    })
+    return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
   }
 
-  // Freigabe-SMS erneut senden wenn Auftrag auf Freigabe wartet
   if (order.status === 'warten_auf_freigabe' && order.freigabe_token) {
     await sendFreigabeSms(order.kunden_telefonnummer, order.freigabe_token)
     console.log('[voxaro] Freigabe-SMS erneut gesendet an:', order.kunden_telefonnummer)
@@ -132,10 +129,5 @@ export async function POST(request: NextRequest) {
 
   console.log('[voxaro] order-lookup: Auftrag gefunden, Status:', order.status)
 
-  return NextResponse.json({
-    found:    true,
-    status:   order.status,
-    fahrzeug: order.fahrzeug,
-    message:  STATUS_MESSAGES[order.status] ?? 'Wir schauen nach dem Status Ihres Fahrzeugs.',
-  })
+  return vapiResult(STATUS_MESSAGES[order.status] ?? 'Wir schauen nach dem Status Ihres Fahrzeugs.')
 }
