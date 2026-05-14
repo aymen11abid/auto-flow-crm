@@ -69,16 +69,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const telefonnummer = String(body.telefonnummer ?? '').trim()
-  const werkstatt_id  = String(body.werkstatt_id  ?? '').trim()
+  const telefonnummer    = String(body.telefonnummer    ?? '').trim()
+  const angerufene_nummer = String(body.angerufene_nummer ?? '').trim()
 
-  if (!telefonnummer || !werkstatt_id) {
-    return NextResponse.json({ error: 'telefonnummer und werkstatt_id erforderlich' }, { status: 400 })
+  if (!telefonnummer || !angerufene_nummer) {
+    return NextResponse.json({ error: 'telefonnummer und angerufene_nummer erforderlich' }, { status: 400 })
   }
 
-  console.log('[voxaro] order-lookup:', telefonnummer, 'werkstatt:', werkstatt_id)
+  console.log('[voxaro] order-lookup:', telefonnummer, 'angerufene Nummer:', angerufene_nummer)
 
   const db = getSupabase()
+
+  // Werkstatt anhand der angerufenen Twilio-Nummer ermitteln
+  const { data: werkstatt } = await db
+    .from('werkstaetten')
+    .select('id')
+    .in('twilio_nummer', phoneVariants(angerufene_nummer))
+    .single()
+
+  if (!werkstatt) {
+    console.warn('[voxaro] order-lookup: keine Werkstatt für Nummer:', angerufene_nummer)
+    return NextResponse.json({
+      found:   false,
+      message: 'Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.',
+    })
+  }
+
+  const werkstatt_id = werkstatt.id
 
   const { data: orders } = await db
     .from('auftraege')
