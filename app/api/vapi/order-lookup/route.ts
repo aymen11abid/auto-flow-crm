@@ -117,12 +117,33 @@ export async function POST(request: NextRequest) {
     .order('erstellt_am', { ascending: false })
     .limit(1)
 
-  const order = orders?.[0] ?? null
+  let order = orders?.[0] ?? null
 
   if (!order) {
-    console.log('[voxaro] order-lookup: kein Auftrag gefunden →', telefonnummer)
-    await db.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
-    return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
+    const kennzeichen = String(vapiArgs.kennzeichen ?? '').trim()
+
+    if (!kennzeichen) {
+      console.log('[voxaro] order-lookup: kein Auftrag per Telefon, frage Kennzeichen nach')
+      return vapiResult('FRAGE_KENNZEICHEN')
+    }
+
+    console.log('[voxaro] order-lookup: suche per Kennzeichen →', kennzeichen)
+    const { data: kfzOrders } = await db
+      .from('auftraege')
+      .select('id, status, fahrzeug, kunden_name, freigabe_token, kunden_telefonnummer')
+      .eq('werkstatt_id', werkstatt_id)
+      .ilike('fahrzeug', `%${kennzeichen}%`)
+      .is('geloescht_am', null)
+      .order('erstellt_am', { ascending: false })
+      .limit(1)
+
+    order = kfzOrders?.[0] ?? null
+
+    if (!order) {
+      console.log('[voxaro] order-lookup: kein Auftrag per Kennzeichen gefunden →', kennzeichen)
+      await db.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
+      return vapiResult('Ich habe leider keinen Auftrag für Ihre Nummer gefunden. Ich informiere den Meister – er meldet sich bei Ihnen.')
+    }
   }
 
   if (order.status === 'warten_auf_freigabe' && order.freigabe_token) {
