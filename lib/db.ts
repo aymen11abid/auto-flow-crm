@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm, Kommentar } from './types'
+import type { Order, NewOrderForm, Kommentar, StatusAnfrage } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -122,5 +122,23 @@ export async function createKommentar(
   const { error } = await supabase
     .from('kommentare')
     .insert([{ auftrag_id: auftragId, text }])
+  return error?.message ?? null
+}
+
+export async function fetchStatusAnfragen(werkstatt_id: string): Promise<StatusAnfrage[]> {
+  const { data } = await supabase
+    .from('status_anfragen')
+    .select('*')
+    .eq('werkstatt_id', werkstatt_id)
+    .eq('bearbeitet', false)
+    .order('erstellt_am', { ascending: false })
+  return data ?? []
+}
+
+export async function markStatusAnfrageErledigt(id: string): Promise<string | null> {
+  const { error } = await supabase
+    .from('status_anfragen')
+    .update({ bearbeitet: true })
+    .eq('id', id)
   return error?.message ?? null
 }

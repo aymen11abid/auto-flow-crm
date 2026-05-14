@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, AlertTriangle, Loader, LogOut } from 'lucide-react'
+import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import { fetchOrders, softDeleteOrder, updateOrderStatus } from '@/lib/db'
+import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import type { Order, OrderStatus } from '@/lib/types'
+import type { Order, OrderStatus, StatusAnfrage } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
@@ -28,15 +28,17 @@ const FILTER_TABS: { value: FilterValue; label: string }[] = [
 export default function Dashboard() {
   const router = useRouter()
 
-  const [authChecked, setAuthChecked]       = useState(false)
-  const [werkstattId, setWerkstattId]       = useState<string>('')
-  const [orders, setOrders]                 = useState<Order[]>([])
-  const [loading, setLoading]               = useState(true)
-  const [formOpen, setFormOpen]             = useState(false)
-  const [error, setError]                   = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget]     = useState<Order | null>(null)
-  const [freigabeTarget, setFreigabeTarget] = useState<Order | null>(null)
-  const [filter, setFilter]                 = useState<FilterValue>('alle')
+  const [authChecked, setAuthChecked]         = useState(false)
+  const [werkstattId, setWerkstattId]         = useState<string>('')
+  const [orders, setOrders]                   = useState<Order[]>([])
+  const [loading, setLoading]                 = useState(true)
+  const [formOpen, setFormOpen]               = useState(false)
+  const [error, setError]                     = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget]       = useState<Order | null>(null)
+  const [freigabeTarget, setFreigabeTarget]   = useState<Order | null>(null)
+  const [filter, setFilter]                   = useState<FilterValue>('alle')
+  const [statusAnfragen, setStatusAnfragen]   = useState<StatusAnfrage[]>([])
+  const [anfragenOpen, setAnfragenOpen]       = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +49,7 @@ export default function Dashboard() {
         setWerkstattId(wid)
         setAuthChecked(true)
         loadOrders(wid)
+        loadStatusAnfragen(wid)
       }
     })
   }, [router])
@@ -57,6 +60,16 @@ export default function Dashboard() {
     if (error) setError(error)
     else setOrders(orders)
     setLoading(false)
+  }
+
+  async function loadStatusAnfragen(wid = werkstattId) {
+    const data = await fetchStatusAnfragen(wid)
+    setStatusAnfragen(data)
+  }
+
+  async function handleAnfrageErledigt(id: string) {
+    await markStatusAnfrageErledigt(id)
+    setStatusAnfragen((prev) => prev.filter((a) => a.id !== id))
   }
 
   async function handleLogout() {
@@ -159,6 +172,55 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Status-Anfragen Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setAnfragenOpen((v) => !v)}
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                title="Status-Anfragen"
+              >
+                <Bell size={16} />
+              </button>
+              {statusAnfragen.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {statusAnfragen.length}
+                </span>
+              )}
+
+              {/* Dropdown Panel */}
+              {anfragenOpen && (
+                <div className="absolute right-0 top-10 w-72 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status-Anfragen</p>
+                  </div>
+                  {statusAnfragen.length === 0 ? (
+                    <p className="text-xs text-zinc-600 px-4 py-3">Keine offenen Anfragen.</p>
+                  ) : (
+                    <ul className="max-h-64 overflow-y-auto divide-y divide-zinc-800">
+                      {statusAnfragen.map((a) => (
+                        <li key={a.id} className="px-4 py-3 flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm text-zinc-200 font-medium">{a.telefonnummer}</p>
+                            <p className="text-xs text-zinc-600">
+                              {new Date(a.erstellt_am).toLocaleString('de-DE', {
+                                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleAnfrageErledigt(a.id)}
+                            className="shrink-0 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            Erledigt
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button onClick={() => loadOrders()}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"

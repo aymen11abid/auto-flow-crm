@@ -46,3 +46,11 @@ export interface FreigabeForm {
   foto_url: string
   betrag: string
 }
+
+export interface StatusAnfrage {
+  id: string
+  werkstatt_id: string
+  telefonnummer: string
+  erstellt_am: string
+  bearbeitet: boolean
+}
