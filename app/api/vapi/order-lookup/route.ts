@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 function phoneVariants(phone: string): string[] {
   const clean = phone.replace(/[\s\-\(\)]/g, '')
@@ -76,7 +78,9 @@ export async function POST(request: NextRequest) {
 
   console.log('[voxaro] order-lookup:', telefonnummer, 'werkstatt:', werkstatt_id)
 
-  const { data: orders } = await supabase
+  const db = getSupabase()
+
+  const { data: orders } = await db
     .from('auftraege')
     .select('id, status, fahrzeug, kunden_name, freigabe_token, kunden_telefonnummer')
     .in('kunden_telefonnummer', phoneVariants(telefonnummer))
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
 
   if (!order) {
     console.log('[voxaro] order-lookup: kein Auftrag gefunden →', telefonnummer)
-    await supabase.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
+    await db.from('status_anfragen').insert([{ werkstatt_id, telefonnummer }])
 
     return NextResponse.json({
       found:   false,
