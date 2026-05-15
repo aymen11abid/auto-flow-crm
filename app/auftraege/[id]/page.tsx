@@ -7,11 +7,11 @@ import {
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
   Plus, Trash2, Send,
 } from 'lucide-react'
-import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag } from '@/lib/db'
+import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import type { Order, Kommentar, Freigabe } from '@/lib/types'
+import type { Order, Kommentar, Freigabe, OrderStatus } from '@/lib/types'
 
 type Position = { beschreibung: string; betrag: string }
 
@@ -85,6 +85,19 @@ export default function AuftragDetailPage() {
     setSending(false)
   }
 
+  async function handleStatusChange(newStatus: OrderStatus) {
+    if (!order) return
+    await updateOrderStatus(order.id, newStatus)
+    setOrder({ ...order, status: newStatus })
+    if (newStatus === 'in_bearbeitung' || newStatus === 'abgeschlossen') {
+      fetch('/api/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, trigger: newStatus }),
+      }).catch(() => {})
+    }
+  }
+
   function startEdit() {
     if (!order) return
     setEditForm({
@@ -134,7 +147,7 @@ export default function AuftragDetailPage() {
 
   if (!order) return null
 
-  const { label, color, Icon } = STATUS_CONFIG[order.status]
+  const { color } = STATUS_CONFIG[order.status]
   const isEskalation = order.status === 'eskalation_rueckruf'
 
   return (
@@ -178,10 +191,17 @@ export default function AuftragDetailPage() {
             : 'bg-zinc-900 border-zinc-800',
         ].join(' ')}>
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${color}`}>
-              <Icon size={11} />
-              {label}
-            </span>
+            <select
+              value={order.status}
+              onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
+              className={`text-xs px-2 py-0.5 rounded-full border font-medium cursor-pointer ${color}`}
+            >
+              {(Object.keys(STATUS_CONFIG) as OrderStatus[]).map((s) => (
+                <option key={s} value={s} className="bg-zinc-900 text-zinc-100">
+                  {STATUS_CONFIG[s].label}
+                </option>
+              ))}
+            </select>
             {order.ist_wiederholung && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-orange-950/50 text-orange-300 border-orange-700">
                 Rückrufer
