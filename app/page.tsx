@@ -11,7 +11,6 @@ import type { Order, OrderStatus, StatusAnfrage, FreigabeCount } from '@/lib/typ
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
-import FreigabeModal from '@/components/FreigabeModal'
 
 type FilterValue = 'alle' | 'geloescht' | OrderStatus
 
@@ -35,7 +34,6 @@ export default function Dashboard() {
   const [formOpen, setFormOpen]               = useState(false)
   const [error, setError]                     = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget]       = useState<Order | null>(null)
-  const [freigabeTarget, setFreigabeTarget]   = useState<Order | null>(null)
   const [filter, setFilter]                   = useState<FilterValue>('alle')
   const [statusAnfragen, setStatusAnfragen]   = useState<StatusAnfrage[]>([])
   const [anfragenOpen, setAnfragenOpen]       = useState(false)
@@ -103,17 +101,6 @@ export default function Dashboard() {
     setDeleteTarget(null)
   }
 
-  function handleFreigabeSuccess(token: string) {
-    if (!freigabeTarget) return
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === freigabeTarget.id
-          ? { ...o, freigabe_token: token, status: 'warten_auf_freigabe', freigabe_ergebnis: null }
-          : o
-      )
-    )
-  }
-
   async function handleStatusChange(id: string, status: OrderStatus) {
     await updateOrderStatus(id, status)
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o))
@@ -159,14 +146,6 @@ export default function Dashboard() {
           order={deleteTarget}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-
-      {freigabeTarget && (
-        <FreigabeModal
-          order={freigabeTarget}
-          onClose={() => setFreigabeTarget(null)}
-          onSuccess={handleFreigabeSuccess}
         />
       )}
 
@@ -333,7 +312,6 @@ export default function Dashboard() {
                   order={order}
                   freigabeCount={freigabenCounts[order.id]}
                   onDeleteClick={setDeleteTarget}
-                  onFreigabeClick={setFreigabeTarget}
                   onStatusChange={handleStatusChange}
                 />
               ))}

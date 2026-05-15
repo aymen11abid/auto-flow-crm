@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus, FreigabeCount } from '@/lib/types'
 
@@ -9,11 +9,10 @@ interface Props {
   order: Order
   freigabeCount?: FreigabeCount
   onDeleteClick: (order: Order) => void
-  onFreigabeClick: (order: Order) => void
   onStatusChange: (id: string, status: OrderStatus) => void
 }
 
-export default function OrderCard({ order, freigabeCount, onDeleteClick, onFreigabeClick, onStatusChange }: Props) {
+export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatusChange }: Props) {
   const router        = useRouter()
   const isEskalation       = order.status === 'eskalation_rueckruf'
   const isDeleted          = !!order.geloescht_am
@@ -152,21 +151,6 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onFreig
         {/* Actions */}
         {!isDeleted && (
           <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-            {!freigabeApproved && !freigabeRejected && (
-              <button
-                onClick={() => onFreigabeClick(order)}
-                title="Freigabe anfragen"
-                className={[
-                  'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors',
-                  freigabePending
-                    ? 'bg-yellow-900/50 hover:bg-yellow-900 text-yellow-300 border border-yellow-700'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
-                ].join(' ')}
-              >
-                <Send size={13} />
-                {freigabePending ? 'Link erneut' : 'Freigabe'}
-              </button>
-            )}
             <a
               href={`tel:${order.kunden_telefonnummer}`}
               className={[

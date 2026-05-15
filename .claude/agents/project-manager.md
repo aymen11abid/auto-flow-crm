@@ -23,6 +23,20 @@ Deine Aufgaben:
   - Samir System Prompt mit Pflicht-Verabschiedung und Fallback-Flow
   - Multi-Tenant: Werkstatt-Lookup per angerufener Nummer
 
+✅ Ticket #6 — Zusatzarbeiten (Multi-Position Freigaben) — Live & getestet 2026-05-15
+  - freigaben Tabelle in Supabase (id, auftrag_id, batch_token, beschreibung, betrag, ergebnis)
+  - Detail-Seite: Modal zum Anlegen mehrerer Positionen gleichzeitig + SMS-Versand
+  - Kunden-Seite (/freigabe/[token]): jede Position einzeln freigeben oder ablehnen
+  - SMS-Link zeigt auf Produktions-URL (NEXT_PUBLIC_APP_URL, Fallback hardcoded voxaro.vercel.app)
+  - NEXT_PUBLIC_APP_URL muss in Vercel → Environment Variables (Production) gesetzt sein ✅ erledigt
+
+## Nächste offene Tickets
+
+⏳ Ticket #7 — Telnyx: Vapi-Konfiguration + SMS-Migration von Twilio
+  - Detail: `.claude/tickets/ticket-7-telnyx-vapi-sms.md`
+  - Blockiert durch: Telnyx-Nummer muss aktiv sein (72h nach Adressnachweis)
+  - Schätzung: ~2h
+
 Kommuniziere immer strukturiert:
 ✅ Abgeschlossen | 🔄 In Arbeit | ⏳ Offen | 🚨 Blockiert
 
