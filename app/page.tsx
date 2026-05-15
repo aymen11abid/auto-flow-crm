@@ -4,10 +4,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt } from '@/lib/db'
+import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import type { Order, OrderStatus, StatusAnfrage } from '@/lib/types'
+import type { Order, OrderStatus, StatusAnfrage, FreigabeCount } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [filter, setFilter]                   = useState<FilterValue>('alle')
   const [statusAnfragen, setStatusAnfragen]   = useState<StatusAnfrage[]>([])
   const [anfragenOpen, setAnfragenOpen]       = useState(false)
+  const [freigabenCounts, setFreigabenCounts] = useState<Record<string, FreigabeCount>>({})
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,8 +58,11 @@ export default function Dashboard() {
   async function loadOrders(wid = werkstattId) {
     setLoading(true)
     const { orders, error } = await fetchOrders(wid)
-    if (error) setError(error)
-    else setOrders(orders)
+    if (error) { setError(error); setLoading(false); return }
+    setOrders(orders)
+    const ids = orders.filter((o) => o.status === 'warten_auf_freigabe').map((o) => o.id)
+    const counts = await fetchFreigabenCounts(ids)
+    setFreigabenCounts(counts)
     setLoading(false)
   }
 
@@ -327,6 +331,7 @@ export default function Dashboard() {
                 <OrderCard
                   key={order.id}
                   order={order}
+                  freigabeCount={freigabenCounts[order.id]}
                   onDeleteClick={setDeleteTarget}
                   onFreigabeClick={setFreigabeTarget}
                   onStatusChange={handleStatusChange}

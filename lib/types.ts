@@ -73,6 +73,11 @@ export interface Freigabe {
   entschieden_am: string | null
 }
 
+export interface FreigabeCount {
+  offen: number
+  gesamt: number
+}
+
 export interface StatusAnfrage {
   id: string
   werkstatt_id: string

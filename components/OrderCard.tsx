@@ -3,19 +3,23 @@
 import { useRouter } from 'next/navigation'
 import { Phone, AlertTriangle, XCircle, Trash2, Send, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
-import type { Order, OrderStatus } from '@/lib/types'
+import type { Order, OrderStatus, FreigabeCount } from '@/lib/types'
 
 interface Props {
   order: Order
+  freigabeCount?: FreigabeCount
   onDeleteClick: (order: Order) => void
   onFreigabeClick: (order: Order) => void
   onStatusChange: (id: string, status: OrderStatus) => void
 }
 
-export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onStatusChange }: Props) {
+export default function OrderCard({ order, freigabeCount, onDeleteClick, onFreigabeClick, onStatusChange }: Props) {
   const router        = useRouter()
-  const isEskalation  = order.status === 'eskalation_rueckruf'
-  const isDeleted     = !!order.geloescht_am
+  const isEskalation       = order.status === 'eskalation_rueckruf'
+  const isDeleted          = !!order.geloescht_am
+  const isWartenFreigabe   = order.status === 'warten_auf_freigabe' && !isDeleted
+  const offenePositionen   = freigabeCount?.offen ?? 0
+  const gesamtPositionen   = freigabeCount?.gesamt ?? 0
   const { label, color, Icon } = STATUS_CONFIG[order.status]
 
   const hasFreigabe        = !!order.freigabe_token
@@ -32,7 +36,9 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
           ? 'bg-zinc-900/40 border-zinc-800 opacity-50 grayscale'
           : isEskalation
             ? 'bg-red-950/30 border-red-600 shadow-[0_0_0_2px_rgba(220,38,38,0.4)] animate-pulse-border cursor-pointer'
-            : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 cursor-pointer',
+            : isWartenFreigabe
+              ? 'bg-orange-950/20 border-orange-500 shadow-[0_0_0_2px_rgba(249,115,22,0.3)] animate-pulse-border cursor-pointer'
+              : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 cursor-pointer',
       ].join(' ')}
     >
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
@@ -101,6 +107,16 @@ export default function OrderCard({ order, onDeleteClick, onFreigabeClick, onSta
             <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-zinc-800 text-zinc-400 border-zinc-700">
               <PhoneCall size={11} />
               Kunde informiert · {new Date(order.status_abgefragt_am).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+
+          {/* Freigabe-Positionen Badge */}
+          {isWartenFreigabe && gesamtPositionen > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-semibold bg-orange-500 text-white animate-pulse w-fit">
+              <AlertTriangle size={12} />
+              {offenePositionen > 0
+                ? `${offenePositionen} von ${gesamtPositionen} offen`
+                : `Alle ${gesamtPositionen} entschieden`}
             </span>
           )}
 

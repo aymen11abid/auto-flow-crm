@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe, PublicOrder } from './types'
+import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe, PublicOrder, FreigabeCount } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -191,6 +191,24 @@ export async function fetchFreigabenByAuftrag(auftragId: string): Promise<Freiga
     .eq('auftrag_id', auftragId)
     .order('erstellt_am', { ascending: true })
   return data ?? []
+}
+
+export async function fetchFreigabenCounts(
+  auftragIds: string[]
+): Promise<Record<string, FreigabeCount>> {
+  if (!auftragIds.length) return {}
+  const { data } = await supabase
+    .from('freigaben')
+    .select('auftrag_id, ergebnis')
+    .in('auftrag_id', auftragIds)
+  if (!data) return {}
+  const counts: Record<string, FreigabeCount> = {}
+  for (const f of data) {
+    if (!counts[f.auftrag_id]) counts[f.auftrag_id] = { offen: 0, gesamt: 0 }
+    counts[f.auftrag_id].gesamt++
+    if (f.ergebnis === null) counts[f.auftrag_id].offen++
+  }
+  return counts
 }
 
 export async function fetchOrderByPortalToken(
