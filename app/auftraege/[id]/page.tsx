@@ -62,21 +62,28 @@ export default function AuftragDetailPage() {
     const next = [...positionen]
     next[index] = { ...next[index], uploading: true }
     setPositionen(next)
+    setSendError(null)
     try {
       const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true })
       const ext = compressed.type === 'image/png' ? 'png' : 'jpg'
       const path = `${order!.id}/${Date.now()}.${ext}`
+      console.log('[voxaro] foto upload start:', path)
       const { error } = await supabase.storage.from('freigabe-fotos').upload(path, compressed, { upsert: true })
-      if (error) throw error
+      if (error) {
+        console.error('[voxaro] foto upload error:', error.message)
+        throw new Error(error.message)
+      }
       const { data } = supabase.storage.from('freigabe-fotos').getPublicUrl(path)
+      console.log('[voxaro] foto upload ok:', data.publicUrl)
       const updated = [...positionen]
       updated[index] = { ...updated[index], foto_url: data.publicUrl, uploading: false }
       setPositionen(updated)
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler'
       const updated = [...positionen]
       updated[index] = { ...updated[index], uploading: false }
       setPositionen(updated)
-      setSendError('Foto-Upload fehlgeschlagen.')
+      setSendError(`Foto-Upload fehlgeschlagen: ${msg}`)
     }
   }
 
