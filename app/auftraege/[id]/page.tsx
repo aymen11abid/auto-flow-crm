@@ -65,18 +65,14 @@ export default function AuftragDetailPage() {
     setSendError(null)
     try {
       const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true })
-      const ext = compressed.type === 'image/png' ? 'png' : 'jpg'
-      const path = `${order!.id}/${Date.now()}.${ext}`
-      console.log('[voxaro] foto upload start:', path)
-      const { error } = await supabase.storage.from('freigabe-fotos').upload(path, compressed, { upsert: true })
-      if (error) {
-        console.error('[voxaro] foto upload error:', error.message)
-        throw new Error(error.message)
-      }
-      const { data } = supabase.storage.from('freigabe-fotos').getPublicUrl(path)
-      console.log('[voxaro] foto upload ok:', data.publicUrl)
+      const form = new FormData()
+      form.append('file', compressed, file.name)
+      form.append('auftragId', order!.id)
+      const res  = await fetch('/api/upload-foto', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Upload fehlgeschlagen')
       const updated = [...positionen]
-      updated[index] = { ...updated[index], foto_url: data.publicUrl, uploading: false }
+      updated[index] = { ...updated[index], foto_url: data.url, uploading: false }
       setPositionen(updated)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unbekannter Fehler'
