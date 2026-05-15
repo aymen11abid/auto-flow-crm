@@ -1,4 +1,4 @@
-import { Plus, Wrench, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Plus, Wrench, CheckCircle, AlertTriangle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { OrderStatus, NewOrderForm } from './types'
 
@@ -15,11 +15,6 @@ export const STATUS_CONFIG: Record<
     label: 'In Bearbeitung',
     Icon: Wrench,
     color: 'bg-yellow-900/50 text-yellow-300 border-yellow-700',
-  },
-  warten_auf_freigabe: {
-    label: 'Warten auf Freigabe',
-    Icon: Clock,
-    color: 'bg-purple-900/50 text-purple-300 border-purple-700',
   },
   abgeschlossen: {
     label: 'Abgeschlossen',

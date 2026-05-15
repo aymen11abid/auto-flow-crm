@@ -19,7 +19,6 @@ const FILTER_TABS: { value: FilterValue; label: string }[] = [
   { value: 'eskalation_rueckruf',   label: 'Rückruf' },
   { value: 'neu',                   label: 'Neu' },
   { value: 'in_bearbeitung',        label: 'In Bearbeitung' },
-  { value: 'warten_auf_freigabe',   label: 'Freigabe' },
   { value: 'abgeschlossen',         label: 'Abgeschlossen' },
   { value: 'geloescht',             label: 'Gelöscht' },
 ]
@@ -58,7 +57,7 @@ export default function Dashboard() {
     const { orders, error } = await fetchOrders(wid)
     if (error) { setError(error); setLoading(false); return }
     setOrders(orders)
-    const ids = orders.filter((o) => o.status === 'warten_auf_freigabe').map((o) => o.id)
+    const ids = orders.filter((o) => !o.geloescht_am).map((o) => o.id)
     const counts = await fetchFreigabenCounts(ids)
     setFreigabenCounts(counts)
     setLoading(false)

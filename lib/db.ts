@@ -143,11 +143,9 @@ export async function createFreigabeBatch(
   if (!existingToken) {
     const { error } = await supabase
       .from('auftraege')
-      .update({ freigabe_token: token, status: 'warten_auf_freigabe' })
+      .update({ freigabe_token: token })
       .eq('id', auftragId)
     if (error) return { token: '', error: error.message }
-  } else {
-    await supabase.from('auftraege').update({ status: 'warten_auf_freigabe' }).eq('id', auftragId)
   }
 
   const rows = positionen.map((p) => ({

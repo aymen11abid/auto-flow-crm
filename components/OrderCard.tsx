@@ -16,7 +16,7 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
   const router        = useRouter()
   const isEskalation       = order.status === 'eskalation_rueckruf'
   const isDeleted          = !!order.geloescht_am
-  const isWartenFreigabe   = order.status === 'warten_auf_freigabe' && !isDeleted
+  const isWartenFreigabe   = (freigabeCount?.offen ?? 0) > 0 && !isDeleted
   const offenePositionen   = freigabeCount?.offen ?? 0
   const gesamtPositionen   = freigabeCount?.gesamt ?? 0
   const { label, color, Icon } = STATUS_CONFIG[order.status]

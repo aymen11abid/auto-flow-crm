@@ -1,7 +1,6 @@
 export type OrderStatus =
   | 'neu'
   | 'in_bearbeitung'
-  | 'warten_auf_freigabe'
   | 'abgeschlossen'
   | 'eskalation_rueckruf'
 
