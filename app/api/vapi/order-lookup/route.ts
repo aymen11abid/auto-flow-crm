@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendMeisterAlert } from '@/lib/sms'
 
 function getSupabase() {
   return createClient(
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest) {
       .update({ status: 'eskalation_rueckruf', status_abgefragt_am: new Date().toISOString() })
       .eq('id', order.id)
     console.log('[voxaro] Rückruf gewünscht → eskalation_rueckruf gesetzt für:', order.id)
+    await sendMeisterAlert(
+      `Voxaro: Rückruf gewünscht – ${order.kunden_name || 'Unbekannt'}, ${order.fahrzeug || '–'}, Tel: ${order.kunden_telefonnummer || '–'}`
+    )
     return vapiResult('Ich habe einen Rückruf für Sie vermerkt. Ein Kollege aus der Werkstatt wird Sie so schnell wie möglich zurückrufen.')
   }
 

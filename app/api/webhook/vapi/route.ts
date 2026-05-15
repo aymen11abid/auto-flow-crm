@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendMeisterAlert } from '@/lib/sms'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -127,6 +128,13 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('[vapi] Supabase error:', error.message)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+
+  if (status === 'eskalation_rueckruf') {
+    const name = kunden_name || 'Unbekannt'
+    const tel  = kunden_telefonnummer || '–'
+    const kfz  = fahrzeug || '–'
+    await sendMeisterAlert(`Voxaro: Rückruf nötig – ${name}, ${kfz}, Tel: ${tel}`)
   }
 
   console.log('[vapi] ✓ Auftrag gespeichert, Wiederholung:', ist_wiederholung)
