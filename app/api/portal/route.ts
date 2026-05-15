@@ -8,6 +8,13 @@ function getSupabase() {
   )
 }
 
+function normalizePhone(nr: string): string {
+  const clean = nr.replace(/\s/g, '')
+  if (clean.startsWith('00')) return '+' + clean.slice(2)
+  if (clean.startsWith('0'))  return '+49' + clean.slice(1)
+  return clean
+}
+
 async function sendSms(to: string, body: string) {
   await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const link = `${appUrl}/auftrag/${token}`
     await sendSms(
-      order.kunden_telefonnummer,
+      normalizePhone(order.kunden_telefonnummer),
       `Ihre Werkstatt hat mit der Arbeit an Ihrem Fahrzeug begonnen. Hier können Sie den Status verfolgen: ${link}`
     )
 
@@ -84,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const link = `${appUrl}/auftrag/${order.portal_token}`
     await sendSms(
-      order.kunden_telefonnummer,
+      normalizePhone(order.kunden_telefonnummer),
       `Ihr Fahrzeug ist fertig und kann abgeholt werden. Zur Übersicht: ${link}`
     )
 

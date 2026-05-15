@@ -9,6 +9,13 @@ function getSupabase() {
   )
 }
 
+function normalizePhone(nr: string): string {
+  const clean = nr.replace(/\s/g, '')
+  if (clean.startsWith('00')) return '+' + clean.slice(2)
+  if (clean.startsWith('0'))  return '+49' + clean.slice(1)
+  return clean
+}
+
 async function sendSms(to: string, body: string) {
   await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
   const db = getSupabase()
   const { data: order } = await db
     .from('auftraege')
-    .select('freigabe_token, kunden_telefonnummer')
+    .select('freigabe_token, kunden_telefonnummer, portal_token')
     .eq('id', orderId)
     .single()
 
@@ -60,9 +67,11 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://voxaro.vercel.app'
-  const link = `${appUrl}/freigabe/${token}`
+  const link = order.portal_token
+    ? `${appUrl}/auftrag/${order.portal_token}`
+    : `${appUrl}/freigabe/${token}`
   await sendSms(
-    order.kunden_telefonnummer,
+    normalizePhone(order.kunden_telefonnummer),
     `Ihre Werkstatt hat ${positionen.length} Zusatzarbeit${positionen.length > 1 ? 'en' : ''} zur Freigabe: ${link}`
   )
 

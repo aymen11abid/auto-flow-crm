@@ -393,8 +393,8 @@ export default function AuftragDetailPage() {
               {positionen.map((p, i) => (
                 <li key={i} className="flex gap-2 items-start">
                   <div className="flex-1 space-y-1.5">
-                    <input
-                      type="text"
+                    <textarea
+                      rows={3}
                       placeholder="Beschreibung der Arbeit"
                       value={p.beschreibung}
                       onChange={(e) => {
@@ -402,7 +402,7 @@ export default function AuftragDetailPage() {
                         next[i] = { ...next[i], beschreibung: e.target.value }
                         setPositionen(next)
                       }}
-                      className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+                      className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 resize-none"
                     />
                     <input
                       type="number"
