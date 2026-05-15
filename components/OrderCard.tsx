@@ -19,7 +19,7 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
   const isWartenFreigabe   = (freigabeCount?.offen ?? 0) > 0 && !isDeleted
   const offenePositionen   = freigabeCount?.offen ?? 0
   const gesamtPositionen   = freigabeCount?.gesamt ?? 0
-  const { label, color, Icon } = STATUS_CONFIG[order.status]
+  const { label, color, Icon } = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['in_bearbeitung']
 
   const hasFreigabe        = !!order.freigabe_token
   const freigabeApproved   = order.freigabe_ergebnis === 'approved'

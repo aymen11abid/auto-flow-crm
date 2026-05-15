@@ -147,7 +147,7 @@ export default function AuftragDetailPage() {
 
   if (!order) return null
 
-  const { color } = STATUS_CONFIG[order.status]
+  const { color } = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['in_bearbeitung']
   const isEskalation = order.status === 'eskalation_rueckruf'
 
   return (
