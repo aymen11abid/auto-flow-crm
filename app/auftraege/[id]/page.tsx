@@ -36,6 +36,7 @@ export default function AuftragDetailPage() {
   const [positionen, setPositionen] = useState<Position[]>([{ beschreibung: '', betrag: '' }])
   const [sending, setSending]       = useState(false)
   const [sendError, setSendError]   = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -178,6 +179,27 @@ export default function AuftragDetailPage() {
   const isEskalation = order.status === 'eskalation_rueckruf'
 
   return (
+    <>
+    {lightboxUrl && (
+      <div
+        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        onClick={() => setLightboxUrl(null)}
+      >
+        <button
+          onClick={() => setLightboxUrl(null)}
+          className="absolute top-4 right-4 bg-zinc-800 hover:bg-zinc-700 rounded-full p-2 text-zinc-300"
+        >
+          <X size={18} />
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={lightboxUrl}
+          alt="Schadensfoto"
+          className="max-w-full max-h-[90vh] rounded-xl object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
 
       {/* Sticky Header */}
@@ -339,6 +361,19 @@ export default function AuftragDetailPage() {
                     <p className="leading-snug">{f.beschreibung}</p>
                     {f.betrag != null && (
                       <p className="text-xs mt-0.5 opacity-70">{f.betrag.toFixed(2)} €</p>
+                    )}
+                    {f.foto_url && (
+                      <button
+                        onClick={() => setLightboxUrl(f.foto_url)}
+                        className="mt-1.5 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.foto_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                        <span className="flex items-center gap-1">
+                          <Camera size={11} />
+                          Foto ansehen
+                        </span>
+                      </button>
                     )}
                   </div>
                 </li>
@@ -535,6 +570,7 @@ export default function AuftragDetailPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
 
