@@ -5,15 +5,16 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
-  Plus, Trash2, Send,
+  Plus, Trash2, Send, Camera, X,
 } from 'lucide-react'
+import imageCompression from 'browser-image-compression'
 import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order, Kommentar, Freigabe, OrderStatus } from '@/lib/types'
 
-type Position = { beschreibung: string; betrag: string }
+type Position = { beschreibung: string; betrag: string; foto_url?: string | null; uploading?: boolean }
 
 export default function AuftragDetailPage() {
   const params  = useParams()
@@ -57,6 +58,28 @@ export default function AuftragDetailPage() {
     setShowModal(true)
   }
 
+  async function handleFotoUpload(index: number, file: File) {
+    const next = [...positionen]
+    next[index] = { ...next[index], uploading: true }
+    setPositionen(next)
+    try {
+      const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true })
+      const ext = compressed.type === 'image/png' ? 'png' : 'jpg'
+      const path = `${order!.id}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('freigabe-fotos').upload(path, compressed, { upsert: true })
+      if (error) throw error
+      const { data } = supabase.storage.from('freigabe-fotos').getPublicUrl(path)
+      const updated = [...positionen]
+      updated[index] = { ...updated[index], foto_url: data.publicUrl, uploading: false }
+      setPositionen(updated)
+    } catch {
+      const updated = [...positionen]
+      updated[index] = { ...updated[index], uploading: false }
+      setPositionen(updated)
+      setSendError('Foto-Upload fehlgeschlagen.')
+    }
+  }
+
   async function handleSendFreigabe() {
     if (!order || sending) return
     const valid = positionen.filter((p) => p.beschreibung.trim())
@@ -71,6 +94,7 @@ export default function AuftragDetailPage() {
         positionen: valid.map((p) => ({
           beschreibung: p.beschreibung.trim(),
           betrag: p.betrag.trim() || null,
+          foto_url: p.foto_url ?? null,
         })),
       }),
     })
@@ -424,6 +448,36 @@ export default function AuftragDetailPage() {
                       }}
                       className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 resize-none"
                     />
+
+                    {/* Foto Upload */}
+                    {p.foto_url ? (
+                      <div className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.foto_url} alt="Schadensfoto" className="w-full rounded-xl object-cover max-h-40" />
+                        <button
+                          onClick={() => { const next = [...positionen]; next[i] = { ...next[i], foto_url: null }; setPositionen(next) }}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-2 w-full cursor-pointer px-3 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 border-dashed hover:border-orange-500 transition-colors">
+                        {p.uploading
+                          ? <Loader size={15} className="animate-spin text-zinc-400" />
+                          : <Camera size={15} className="text-zinc-400" />}
+                        <span className="text-xs text-zinc-500">{p.uploading ? 'Wird hochgeladen…' : 'Foto hinzufügen (optional)'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          disabled={p.uploading}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFotoUpload(i, f) }}
+                        />
+                      </label>
+                    )}
+
                     <input
                       type="number"
                       placeholder="Betrag (€) optional"

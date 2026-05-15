@@ -37,7 +37,7 @@ async function sendSms(to: string, body: string) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { orderId: string; positionen: { beschreibung: string; betrag: string | null }[] }
+  let body: { orderId: string; positionen: { beschreibung: string; betrag: string | null; foto_url?: string | null }[] }
   try {
     body = await request.json()
   } catch {
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
   const parsed = positionen.map((p) => ({
     beschreibung: p.beschreibung,
     betrag: p.betrag ? parseFloat(p.betrag) : null,
+    foto_url: p.foto_url ?? null,
   }))
 
   const { token, error } = await createFreigabeBatch(orderId, parsed, order.freigabe_token ?? null)

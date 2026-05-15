@@ -135,7 +135,7 @@ export async function createKommentar(
 
 export async function createFreigabeBatch(
   auftragId: string,
-  positionen: { beschreibung: string; betrag: number | null }[],
+  positionen: { beschreibung: string; betrag: number | null; foto_url?: string | null }[],
   existingToken: string | null
 ): Promise<{ token: string; error: string | null }> {
   const token = existingToken ?? crypto.randomUUID().replace(/-/g, '').slice(0, 24)
@@ -149,10 +149,11 @@ export async function createFreigabeBatch(
   }
 
   const rows = positionen.map((p) => ({
-    auftrag_id:  auftragId,
-    batch_token: token,
+    auftrag_id:   auftragId,
+    batch_token:  token,
     beschreibung: p.beschreibung,
     betrag:       p.betrag,
+    foto_url:     p.foto_url ?? null,
   }))
 
   const { error } = await supabase.from('freigaben').insert(rows)

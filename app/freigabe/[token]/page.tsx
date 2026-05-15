@@ -91,7 +91,12 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
               Freigabe erforderlich · {offene.length} Position{offene.length > 1 ? 'en' : ''}
             </p>
             {offene.map((f) => (
-              <div key={f.id} className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 space-y-3">
+              <div key={f.id} className="bg-zinc-900 border border-zinc-700 rounded-2xl overflow-hidden space-y-3">
+                {f.foto_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={f.foto_url} alt="Schadensfoto" className="w-full object-cover max-h-56" />
+                )}
+                <div className="px-4 pb-4 space-y-3">
                 <p className="text-sm text-zinc-200 leading-relaxed">{f.beschreibung}</p>
                 {f.betrag && (
                   <div className="flex items-center justify-between bg-orange-950/30 border border-orange-800/50 rounded-xl px-3 py-2">
@@ -117,6 +122,7 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
                     Ablehnen
                   </button>
                 </div>
+                </div>{/* px-4 pb-4 */}
               </div>
             ))}
             {gesamtOffen > 0 && (
