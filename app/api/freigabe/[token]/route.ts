@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { fetchOrderByFreigabeToken, fetchFreigabenByToken, resolveFreigabePosition } from '@/lib/db'
-import { sendMeisterAlert } from '@/lib/sms'
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 export async function GET(
   _request: NextRequest,
@@ -41,18 +32,6 @@ export async function POST(
 
   const error = await resolveFreigabePosition(body.freigabeId, token, body.result)
   if (error) return NextResponse.json({ error }, { status: 500 })
-
-  if (body.result === 'rejected') {
-    const db = getSupabase()
-    const { data: freigabe } = await db
-      .from('freigaben')
-      .select('beschreibung')
-      .eq('id', body.freigabeId)
-      .single()
-    await sendMeisterAlert(
-      `Voxaro: Freigabe abgelehnt – ${freigabe?.beschreibung ?? 'Zusatzarbeit'}`
-    )
-  }
 
   return NextResponse.json({ success: true })
 }

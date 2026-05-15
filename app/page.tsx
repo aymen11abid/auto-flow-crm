@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell } from 'lucide-react'
+import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [statusAnfragen, setStatusAnfragen]   = useState<StatusAnfrage[]>([])
   const [anfragenOpen, setAnfragenOpen]       = useState(false)
   const [freigabenCounts, setFreigabenCounts] = useState<Record<string, FreigabeCount>>({})
+  const [eskalationAlert, setEskalationAlert] = useState<Order | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -51,6 +52,23 @@ export default function Dashboard() {
       }
     })
   }, [router])
+
+  useEffect(() => {
+    if (!authChecked || !werkstattId) return
+    const channel = supabase
+      .channel('eskalation-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'auftraege' }, (payload) => {
+        const o = payload.new as Order
+        if (o?.status === 'eskalation_rueckruf') {
+          fetchOrders(werkstattId).then(({ orders: fresh }) => setOrders(fresh))
+          setEskalationAlert(o)
+          setTimeout(() => setEskalationAlert((cur) => cur?.id === o.id ? null : cur), 8000)
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, werkstattId])
 
   async function loadOrders(wid = werkstattId) {
     setLoading(true)
@@ -319,6 +337,27 @@ export default function Dashboard() {
         </section>
 
       </main>
+
+      {/* Realtime Eskalations-Alert */}
+      {eskalationAlert && (
+        <div className="fixed bottom-5 left-4 right-4 z-50 max-w-sm mx-auto">
+          <div className="bg-red-950 border border-red-600 rounded-2xl p-4 shadow-2xl flex items-start gap-3">
+            <PhoneCall size={18} className="text-red-400 shrink-0 mt-0.5 animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-100">Rückruf nötig</p>
+              <p className="text-xs text-red-300 mt-0.5 truncate">
+                {eskalationAlert.kunden_name || 'Unbekannt'} · {eskalationAlert.fahrzeug || '–'}
+              </p>
+            </div>
+            <button
+              onClick={() => setEskalationAlert(null)}
+              className="text-red-500 hover:text-red-300 shrink-0"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
