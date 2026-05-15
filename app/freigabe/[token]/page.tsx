@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, XCircle, Loader, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader, AlertTriangle, Camera, X } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order, Freigabe } from '@/lib/types'
 
@@ -13,6 +13,7 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
   const [freigaben, setFreigaben] = useState<Freigabe[]>([])
   const [state, setState]       = useState<PageState>('loading')
   const [submitting, setSubmitting] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   useEffect(() => {
     params.then(({ token }) => {
@@ -75,6 +76,27 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
   const gesamtOffen = offene.reduce((s, f) => s + (f.betrag ?? 0), 0)
 
   return (
+    <>
+    {lightboxUrl && (
+      <div
+        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        onClick={() => setLightboxUrl(null)}
+      >
+        <button
+          onClick={() => setLightboxUrl(null)}
+          className="absolute top-4 right-4 bg-zinc-800 hover:bg-zinc-700 rounded-full p-2 text-zinc-300"
+        >
+          <X size={18} />
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={lightboxUrl}
+          alt="Schadensfoto"
+          className="max-w-full max-h-[90vh] rounded-xl object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
     <Shell>
       <div className="space-y-3">
         {/* Header */}
@@ -91,12 +113,21 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
               Freigabe erforderlich · {offene.length} Position{offene.length > 1 ? 'en' : ''}
             </p>
             {offene.map((f) => (
-              <div key={f.id} className="bg-zinc-900 border border-zinc-700 rounded-2xl overflow-hidden space-y-3">
+              <div key={f.id} className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 space-y-3">
                 {f.foto_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={f.foto_url} alt="Schadensfoto" className="w-full object-cover max-h-56" />
+                  <button
+                    onClick={() => setLightboxUrl(f.foto_url)}
+                    className="w-full flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl px-3 py-2 text-left transition-colors"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.foto_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+                      <Camera size={12} />
+                      Schadensfoto ansehen
+                    </span>
+                  </button>
                 )}
-                <div className="px-4 pb-4 space-y-3">
+                <div className="space-y-3">
                 <p className="text-sm text-zinc-200 leading-relaxed">{f.beschreibung}</p>
                 {f.betrag && (
                   <div className="flex items-center justify-between bg-orange-950/30 border border-orange-800/50 rounded-xl px-3 py-2">
@@ -122,7 +153,7 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
                     Ablehnen
                   </button>
                 </div>
-                </div>{/* px-4 pb-4 */}
+                </div>
               </div>
             ))}
             {gesamtOffen > 0 && (
@@ -164,5 +195,6 @@ export default function FreigabePage({ params }: { params: Promise<{ token: stri
         )}
       </div>
     </Shell>
+    </>
   )
 }
