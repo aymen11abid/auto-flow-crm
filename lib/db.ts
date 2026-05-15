@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe } from './types'
+import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe, PublicOrder } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -191,6 +191,18 @@ export async function fetchFreigabenByAuftrag(auftragId: string): Promise<Freiga
     .eq('auftrag_id', auftragId)
     .order('erstellt_am', { ascending: true })
   return data ?? []
+}
+
+export async function fetchOrderByPortalToken(
+  token: string
+): Promise<{ order: PublicOrder | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('auftraege')
+    .select('id, fahrzeug, kunden_name, problem_beschreibung, status, erstellt_am, freigabe_token')
+    .eq('portal_token', token)
+    .single()
+  if (error) return { order: null, error: error.message }
+  return { order: data as PublicOrder, error: null }
 }
 
 export async function fetchStatusAnfragen(werkstatt_id: string): Promise<StatusAnfrage[]> {

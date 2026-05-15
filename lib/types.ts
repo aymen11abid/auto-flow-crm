@@ -28,6 +28,19 @@ export interface Order {
   freigabe_angefragt_am: string | null
   freigabe_ergebnis: 'approved' | 'rejected' | null
   status_abgefragt_am: string | null
+  portal_token: string | null
+  portal_sms_gesendet_am: string | null
+  portal_fertig_sms_gesendet_am: string | null
+}
+
+export interface PublicOrder {
+  id: string
+  fahrzeug: string
+  kunden_name: string
+  problem_beschreibung: string
+  status: OrderStatus
+  erstellt_am: string
+  freigabe_token: string | null
 }
 
 export type NewOrderForm = Pick<

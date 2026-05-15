@@ -113,6 +113,13 @@ export default function Dashboard() {
   async function handleStatusChange(id: string, status: OrderStatus) {
     await updateOrderStatus(id, status)
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o))
+    if (status === 'in_bearbeitung' || status === 'abgeschlossen') {
+      fetch('/api/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: id, trigger: status }),
+      }).catch(() => {})
+    }
   }
 
   const escalationCount = orders.filter(
