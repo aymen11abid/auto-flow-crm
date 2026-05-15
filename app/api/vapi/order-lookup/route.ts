@@ -27,25 +27,6 @@ function phoneVariants(phone: string): string[] {
   return Array.from(variants)
 }
 
-async function sendFreigabeSms(telefonnummer: string, token: string): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
-  const link   = `${appUrl}/freigabe/${token}`
-
-  await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      Authorization: 'Basic ' + Buffer.from(
-        `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-      ).toString('base64'),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      From: process.env.TWILIO_FROM_NUMBER!,
-      To:   telefonnummer,
-      Body: `Ihr Freigabe-Link: ${link}`,
-    }).toString(),
-  })
-}
 
 const STATUS_MESSAGES: Record<string, string> = {
   neu:                 'Ihr Fahrzeug wurde aufgenommen, wir bearbeiten es in Kürze.',
@@ -77,8 +58,9 @@ export async function POST(request: NextRequest) {
 
   console.log('[voxaro] toolCall:', JSON.stringify(toolCall))
 
-  const telefonnummer     = String(vapiArgs.telefonnummer     ?? body.telefonnummer     ?? '').trim()
-  const angerufene_nummer = String(vapiArgs.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
+  const telefonnummer      = String(vapiArgs.telefonnummer     ?? body.telefonnummer     ?? '').trim()
+  const angerufene_nummer  = String(vapiArgs.angerufene_nummer ?? body.angerufene_nummer ?? '').trim()
+  const rueckruf_gewuenscht = vapiArgs.rueckruf_gewuenscht === true || vapiArgs.rueckruf_gewuenscht === 'true'
 
   // Laut docs.vapi.ai/tools/custom-tools: { results: [{ toolCallId, result }] }
   function vapiResult(result: string) {
@@ -146,9 +128,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (order.status === 'warten_auf_freigabe' && order.freigabe_token) {
-    await sendFreigabeSms(order.kunden_telefonnummer, order.freigabe_token)
-    console.log('[voxaro] Freigabe-SMS erneut gesendet an:', order.kunden_telefonnummer)
+  if (rueckruf_gewuenscht) {
+    await db.from('auftraege')
+      .update({ status: 'eskalation_rueckruf', status_abgefragt_am: new Date().toISOString() })
+      .eq('id', order.id)
+    console.log('[voxaro] Rückruf gewünscht → eskalation_rueckruf gesetzt für:', order.id)
+    return vapiResult('Ich habe einen Rückruf für Sie vermerkt. Ein Kollege aus der Werkstatt wird Sie so schnell wie möglich zurückrufen.')
   }
 
   await db.from('auftraege').update({ status_abgefragt_am: new Date().toISOString() }).eq('id', order.id)
