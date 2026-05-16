@@ -52,11 +52,21 @@ export async function POST(request: NextRequest) {
   const db = getSupabase()
   const { data: order } = await db
     .from('auftraege')
-    .select('freigabe_token, kunden_telefonnummer, portal_token')
+    .select('freigabe_token, kunden_telefonnummer, portal_token, werkstatt_id')
     .eq('id', orderId)
     .single()
 
   if (!order) return NextResponse.json({ error: 'Auftrag nicht gefunden' }, { status: 404 })
+
+  let werkstattName = 'Ihre Werkstatt'
+  if (order.werkstatt_id) {
+    const { data: ws } = await db
+      .from('werkstaetten')
+      .select('name')
+      .eq('id', order.werkstatt_id)
+      .single()
+    if (ws?.name) werkstattName = ws.name
+  }
 
   const parsed = positionen.map((p) => ({
     beschreibung: p.beschreibung,
@@ -73,7 +83,7 @@ export async function POST(request: NextRequest) {
     : `${appUrl}/freigabe/${token}`
   await sendSms(
     normalizePhone(order.kunden_telefonnummer),
-    `Ihre Werkstatt hat ${positionen.length} Zusatzarbeit${positionen.length > 1 ? 'en' : ''} zur Freigabe: ${link}`
+    `${werkstattName}: ${positionen.length} Zusatzarbeit${positionen.length > 1 ? 'en' : ''} zur Freigabe: ${link}`
   )
 
   return NextResponse.json({ token })
