@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Phone, AlertTriangle, XCircle, Trash2, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall } from 'lucide-react'
+import { Phone, AlertTriangle, XCircle, Trash2, CheckCircle2, Clock, PhoneIncoming, Sun, Sunset, PhoneCall, CalendarDays } from 'lucide-react'
 import { STATUS_CONFIG } from '@/lib/constants'
 import type { Order, OrderStatus, FreigabeCount } from '@/lib/types'
 
@@ -98,6 +98,23 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
               {order.rueckruf_wunsch === 'nachmittags' && <Sunset size={11} className="text-orange-400" />}
               {order.rueckruf_wunsch === 'egal' && <Phone size={11} />}
               Rückruf {order.rueckruf_wunsch}
+            </span>
+          )}
+
+          {/* Termin */}
+          {order.termin_datum && !isDeleted && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-blue-950/50 text-blue-300 border-blue-700">
+              <CalendarDays size={11} />
+              {new Date(order.termin_datum).toLocaleDateString('de-DE', {
+                weekday: 'short', day: '2-digit', month: '2-digit',
+              })} · {new Date(order.termin_datum).toLocaleTimeString('de-DE', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
+              })} Uhr
+              {order.termin_dauer_minuten && order.termin_dauer_minuten >= 1440 && (
+                <span className="opacity-60 ml-0.5">
+                  · {Math.round(order.termin_dauer_minuten / 1440)} Tag{Math.round(order.termin_dauer_minuten / 1440) > 1 ? 'e' : ''}
+                </span>
+              )}
             </span>
           )}
 

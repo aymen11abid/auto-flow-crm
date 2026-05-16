@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
-  Plus, Trash2, Send, Camera, X, CalendarDays,
+  Plus, Trash2, Send, Camera, X, CalendarDays, Ban,
 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin } from '@/lib/db'
@@ -467,12 +467,29 @@ export default function AuftragDetailPage() {
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => setTerminModalOpen(true)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
-                >
-                  Ändern
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTerminModalOpen(true)}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+                  >
+                    Ändern
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const err = await saveTermin(order.id, null, null)
+                      if (!err) {
+                        setOrder({ ...order, termin_datum: null, termin_dauer_minuten: null })
+                        setTerminDatum('')
+                        setTerminDauer(60)
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
+                    title="Termin stornieren"
+                  >
+                    <Ban size={12} />
+                    Stornieren
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
