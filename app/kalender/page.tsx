@@ -67,7 +67,14 @@ export default function KalenderPage() {
   const wochende = addDays(wochenstart, 6)
 
   const termineAmTag = (tag: Date): Order[] =>
-    termine.filter((o) => o.termin_datum && sameDay(new Date(o.termin_datum), tag))
+    termine.filter((o) => {
+      if (!o.termin_datum) return false
+      const start = new Date(o.termin_datum)
+      const end   = new Date(start.getTime() + (o.termin_dauer_minuten ?? 60) * 60 * 1000)
+      const tagStart = new Date(tag); tagStart.setHours(0, 0, 0, 0)
+      const tagEnd   = new Date(tag); tagEnd.setHours(23, 59, 59, 999)
+      return start <= tagEnd && end > tagStart
+    })
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">

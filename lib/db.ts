@@ -257,11 +257,13 @@ export async function fetchTermine(
   von: Date,
   bis: Date
 ): Promise<Order[]> {
+  // Puffer von 7 Tagen vor `von`, damit mehrtägige Termine die in die Woche hineinreichen auch geladen werden
+  const vonMitPuffer = new Date(von.getTime() - 7 * 24 * 60 * 60 * 1000)
   const { data } = await supabase
     .from('auftraege')
     .select('id, kunden_name, fahrzeug, termin_datum, termin_dauer_minuten, status, kunden_telefonnummer')
     .eq('werkstatt_id', werkstatt_id)
-    .gte('termin_datum', von.toISOString())
+    .gte('termin_datum', vonMitPuffer.toISOString())
     .lte('termin_datum', bis.toISOString())
     .is('geloescht_am', null)
     .order('termin_datum', { ascending: true })
