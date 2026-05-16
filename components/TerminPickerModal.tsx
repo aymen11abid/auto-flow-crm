@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, X, Check, Loader } from 'lucide-react'
 import { fetchTermine } from '@/lib/db'
+import { getGermanHolidays, holidayKey } from '@/lib/feiertage'
 import type { Order } from '@/lib/types'
 
 const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -97,6 +98,10 @@ export default function TerminPickerModal({
   }
 
   const today = new Date()
+  const holidays = new Map([
+    ...getGermanHolidays(wochenstart.getFullYear()),
+    ...getGermanHolidays(wochenstart.getFullYear() + 1),
+  ])
   const selectedDayTermine = selectedDay ? termineAmTag(termine, selectedDay) : []
 
   return (
@@ -140,6 +145,8 @@ export default function TerminPickerModal({
             const isSelected  = !!selectedDay && sameDay(day, selectedDay)
             const dayTermine  = termineAmTag(termine, day)
             const isBusy      = dayTermine.length > 0
+            const isWeekend   = i >= 5
+            const holidayName = holidays.get(holidayKey(day))
 
             return (
               <button
@@ -147,20 +154,28 @@ export default function TerminPickerModal({
                 onClick={() => setSelectedDay(day)}
                 className={[
                   'flex flex-col items-center pt-2 pb-3 px-1 border-r border-zinc-800 last:border-r-0 transition-colors',
-                  isSelected ? 'bg-orange-500/15' : 'hover:bg-zinc-800/50',
+                  isSelected ? 'bg-orange-500/15' : isWeekend ? 'bg-zinc-900/60 hover:bg-zinc-800/50' : 'hover:bg-zinc-800/50',
                 ].join(' ')}
               >
-                <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">{tag}</span>
+                <span className={[
+                  'text-[10px] font-semibold uppercase tracking-wide',
+                  isWeekend ? 'text-zinc-600' : 'text-zinc-500',
+                ].join(' ')}>{tag}</span>
                 <span className={[
                   'mt-1 text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-colors',
                   isSelected
                     ? 'bg-orange-500 text-white'
                     : isToday
                       ? 'ring-1 ring-orange-500 text-orange-400'
-                      : 'text-zinc-200',
+                      : isWeekend
+                        ? 'text-zinc-600'
+                        : 'text-zinc-200',
                 ].join(' ')}>
                   {day.getDate()}
                 </span>
+                {holidayName && (
+                  <span className="text-[8px] text-blue-400 leading-tight text-center truncate w-full px-0.5 mt-0.5">{holidayName}</span>
+                )}
 
                 {/* Belegungs-Indikator */}
                 <div className="mt-1.5 w-full px-0.5 min-h-[20px]">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchTermine } from '@/lib/db'
+import { getGermanHolidays, holidayKey } from '@/lib/feiertage'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order } from '@/lib/types'
 
@@ -108,6 +109,11 @@ export default function KalenderPage() {
 
   const weeks = getWeeksOfMonth(year, month)
   const today = new Date()
+  const holidays = new Map([
+    ...getGermanHolidays(year - 1),
+    ...getGermanHolidays(year),
+    ...getGermanHolidays(year + 1),
+  ])
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -147,10 +153,13 @@ export default function KalenderPage() {
         <div className="max-w-6xl mx-auto">
           {/* Wochentag-Header */}
           <div className="grid grid-cols-7 border-b border-zinc-800">
-            {WOCHENTAGE.map((tag) => (
+            {WOCHENTAGE.map((tag, i) => (
               <div
                 key={tag}
-                className="py-2 text-center text-[11px] font-semibold text-zinc-500 uppercase tracking-wider border-r border-zinc-800 last:border-r-0"
+                className={[
+                  'py-2 text-center text-[11px] font-semibold uppercase tracking-wider border-r border-zinc-800 last:border-r-0',
+                  i >= 5 ? 'text-zinc-600 bg-zinc-900/60' : 'text-zinc-500',
+                ].join(' ')}
               >
                 {tag}
               </div>
@@ -170,21 +179,29 @@ export default function KalenderPage() {
                 {week.map((day, di) => {
                   const isToday        = day.toDateString() === today.toDateString()
                   const isCurrentMonth = day.getMonth() === month
+                  const isWeekend      = di >= 5
+                  const holidayName    = holidays.get(holidayKey(day))
                   return (
                     <div
                       key={di}
-                      className="p-1.5 border-r border-zinc-800 last:border-r-0"
+                      className={[
+                        'p-1.5 border-r border-zinc-800 last:border-r-0',
+                        isWeekend ? 'bg-zinc-900/60' : '',
+                      ].join(' ')}
                     >
                       <span className={[
                         'text-sm font-medium inline-flex w-7 h-7 items-center justify-center rounded-full',
                         isToday
                           ? 'bg-orange-500 text-white'
                           : isCurrentMonth
-                            ? 'text-zinc-300'
+                            ? isWeekend ? 'text-zinc-500' : 'text-zinc-300'
                             : 'text-zinc-700',
                       ].join(' ')}>
                         {day.getDate()}
                       </span>
+                      {holidayName && (
+                        <p className="text-[9px] text-blue-400 leading-tight mt-0.5 truncate">{holidayName}</p>
+                      )}
                     </div>
                   )
                 })}
