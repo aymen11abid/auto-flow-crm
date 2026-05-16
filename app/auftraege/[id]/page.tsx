@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin } from '@/lib/db'
+import TerminPickerModal from '@/components/TerminPickerModal'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
@@ -40,6 +41,7 @@ export default function AuftragDetailPage() {
   const [terminDatum, setTerminDatum]         = useState('')
   const [terminDauer, setTerminDauer]         = useState<number>(60)
   const [terminEditing, setTerminEditing]     = useState(false)
+  const [terminModalOpen, setTerminModalOpen] = useState(false)
   const [terminSaving, setTerminSaving]       = useState(false)
   const [terminSmsing, setTerminSmsing]       = useState(false)
   const [terminError, setTerminError]         = useState<string | null>(null)
@@ -216,6 +218,19 @@ export default function AuftragDetailPage() {
 
   return (
     <>
+    {terminModalOpen && order && (
+      <TerminPickerModal
+        werkstattId={order.werkstatt_id}
+        currentOrderId={order.id}
+        initialDatum={terminDatum}
+        onSelect={(datum) => {
+          setTerminDatum(datum)
+          setTerminEditing(true)
+          setTerminModalOpen(false)
+        }}
+        onClose={() => setTerminModalOpen(false)}
+      />
+    )}
     {lightboxUrl && (
       <div
         className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
@@ -453,7 +468,7 @@ export default function AuftragDetailPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => setTerminEditing(true)}
+                  onClick={() => setTerminModalOpen(true)}
                   className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
                 >
                   Ändern
@@ -464,7 +479,7 @@ export default function AuftragDetailPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-600">Noch kein Termin vereinbart.</p>
               <button
-                onClick={() => setTerminEditing(true)}
+                onClick={() => setTerminModalOpen(true)}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
               >
                 <Plus size={12} />
