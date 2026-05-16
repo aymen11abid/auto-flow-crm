@@ -54,7 +54,7 @@ function getEventsForWeek(termine: Order[], weekStart: Date): WeekEvent[] {
     const clampedStart = start < weekStart ? weekStart : start
     const clampedEnd   = end   > weekEnd   ? weekEnd   : end
     const dayStart = Math.floor((clampedStart.getTime() - weekStart.getTime()) / 86400000)
-    const dayEnd   = Math.ceil ((clampedEnd.getTime()   - weekStart.getTime()) / 86400000)
+    const dayEnd   = Math.floor((clampedEnd.getTime()   - weekStart.getTime()) / 86400000)
     result.push({ order, colStart: dayStart + 1, colSpan: Math.max(1, dayEnd - dayStart) })
   }
   return result
@@ -187,8 +187,8 @@ export default function KalenderPage() {
                   const dauerLabel = dauerMin
                     ? dauerMin < 60
                       ? `${dauerMin} Min`
-                      : dauerMin % 480 === 0
-                        ? `${dauerMin / 480} Tag${dauerMin > 480 ? 'e' : ''}`
+                      : dauerMin >= 1440 && dauerMin % 1440 === 0
+                        ? `${dauerMin / 1440} Tag${dauerMin > 1440 ? 'e' : ''}`
                         : `${dauerMin / 60} Std`
                     : null
                   return (

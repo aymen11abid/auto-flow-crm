@@ -400,9 +400,11 @@ export default function AuftragDetailPage() {
                   <option value={120}>2 Stunden</option>
                   <option value={180}>3 Stunden</option>
                   <option value={240}>4 Stunden</option>
-                  <option value={480}>1 Tag</option>
-                  <option value={960}>2 Tage</option>
-                  <option value={1440}>3 Tage</option>
+                  <option value={1440}>1 Tag</option>
+                  <option value={2880}>2 Tage</option>
+                  <option value={4320}>3 Tage</option>
+                  <option value={5760}>4 Tage</option>
+                  <option value={7200}>5 Tage</option>
                 </select>
               </div>
               {terminError && <p className="text-red-400 text-xs">{terminError}</p>}
@@ -444,8 +446,8 @@ export default function AuftragDetailPage() {
                     <p className="text-xs text-zinc-500 mt-0.5">
                       Dauer: {order.termin_dauer_minuten < 60
                         ? `${order.termin_dauer_minuten} Min`
-                        : order.termin_dauer_minuten % 480 === 0
-                          ? `${order.termin_dauer_minuten / 480} Tag${order.termin_dauer_minuten > 480 ? 'e' : ''}`
+                        : order.termin_dauer_minuten >= 1440 && order.termin_dauer_minuten % 1440 === 0
+                          ? `${order.termin_dauer_minuten / 1440} Tag${order.termin_dauer_minuten > 1440 ? 'e' : ''}`
                           : `${order.termin_dauer_minuten / 60} Std`}
                     </p>
                   )}
