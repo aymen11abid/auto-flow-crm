@@ -31,14 +31,24 @@ function sameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString()
 }
 
+function effectiveEnd(o: Order): Date {
+  const start = new Date(o.termin_datum!)
+  const dauer = o.termin_dauer_minuten ?? 60
+  if (dauer >= 1440) {
+    const startDay = new Date(start); startDay.setHours(0, 0, 0, 0)
+    return addDays(startDay, Math.round(dauer / 1440))
+  }
+  return new Date(start.getTime() + dauer * 60000)
+}
+
 function termineAmTag(termine: Order[], tag: Date): Order[] {
   return termine.filter((o) => {
     if (!o.termin_datum) return false
     const start    = new Date(o.termin_datum)
-    const end      = new Date(start.getTime() + (o.termin_dauer_minuten ?? 60) * 60000)
+    const end      = effectiveEnd(o)
     const tagStart = new Date(tag); tagStart.setHours(0, 0, 0, 0)
-    const tagEnd   = new Date(tag); tagEnd.setHours(23, 59, 59, 999)
-    return start <= tagEnd && end > tagStart
+    const tagEnd   = addDays(tagStart, 1)
+    return start < tagEnd && end > tagStart
   })
 }
 
