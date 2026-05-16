@@ -153,7 +153,7 @@ export default function KalenderPage() {
               <div
                 key={wi}
                 className="grid grid-cols-7 border-b border-zinc-800"
-                style={{ minHeight: `${80 + events.length * 26}px` }}
+                style={{ minHeight: `${90 + events.length * 52}px` }}
               >
                 {/* Tageszahlen — füllen automatisch Zeile 1 */}
                 {week.map((day, di) => {
@@ -179,21 +179,40 @@ export default function KalenderPage() {
                 })}
 
                 {/* Termin-Balken — ab Zeile 2, spannen über Spalten */}
-                {events.map(({ order, colStart, colSpan }) => (
-                  <button
-                    key={order.id}
-                    onClick={() => router.push(`/auftraege/${order.id}`)}
-                    style={{ gridColumn: `${colStart} / span ${colSpan}` }}
-                    className="mx-0.5 mb-0.5 h-6 px-2 rounded text-xs font-medium text-white bg-blue-500 hover:bg-blue-400 text-left truncate transition-colors flex items-center gap-1"
-                  >
-                    <span className="opacity-75 shrink-0">
-                      {new Date(order.termin_datum!).toLocaleTimeString('de-DE', {
-                        hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
-                      })}
-                    </span>
-                    <span className="truncate">{order.kunden_name || order.fahrzeug || 'Termin'}</span>
-                  </button>
-                ))}
+                {events.map(({ order, colStart, colSpan }) => {
+                  const uhrzeit = new Date(order.termin_datum!).toLocaleTimeString('de-DE', {
+                    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
+                  })
+                  const dauerMin = order.termin_dauer_minuten
+                  const dauerLabel = dauerMin
+                    ? dauerMin < 60
+                      ? `${dauerMin} Min`
+                      : dauerMin % 480 === 0
+                        ? `${dauerMin / 480} Tag${dauerMin > 480 ? 'e' : ''}`
+                        : `${dauerMin / 60} Std`
+                    : null
+                  return (
+                    <button
+                      key={order.id}
+                      onClick={() => router.push(`/auftraege/${order.id}`)}
+                      style={{ gridColumn: `${colStart} / span ${colSpan}` }}
+                      className="mx-0.5 mb-1 px-2 py-1 rounded-md text-white bg-orange-500 hover:bg-orange-400 text-left transition-colors flex flex-col gap-0 min-h-[44px] justify-center"
+                    >
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold truncate">
+                        <span className="opacity-80 shrink-0">{uhrzeit}</span>
+                        {dauerLabel && <span className="opacity-60 shrink-0">· {dauerLabel}</span>}
+                      </div>
+                      <div className="text-xs font-medium truncate leading-tight">
+                        {order.kunden_name || '—'}
+                      </div>
+                      {order.fahrzeug && (
+                        <div className="text-[10px] opacity-70 truncate leading-tight">
+                          {order.fahrzeug}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )
           })}
