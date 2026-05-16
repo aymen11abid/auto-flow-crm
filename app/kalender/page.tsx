@@ -8,13 +8,16 @@ import { fetchTermine } from '@/lib/db'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order } from '@/lib/types'
 
-const TAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const MONATE = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+]
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
-  const diff = (day === 0 ? -6 : 1 - day)
-  d.setDate(d.getDate() + diff)
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
   d.setHours(0, 0, 0, 0)
   return d
 }
@@ -25,23 +28,44 @@ function addDays(date: Date, n: number): Date {
   return d
 }
 
-function formatDauer(min: number): string {
-  if (min < 60) return `${min} Min`
-  if (min % 480 === 0) return `${min / 480} Tag${min > 480 ? 'e' : ''}`
-  return `${min / 60} Std`
+function getWeeksOfMonth(year: number, month: number): Date[][] {
+  const firstDay  = new Date(year, month, 1)
+  const lastDay   = new Date(year, month + 1, 0)
+  let   current   = getMondayOf(firstDay)
+  const weeks: Date[][] = []
+  while (current <= lastDay) {
+    const week: Date[] = []
+    for (let i = 0; i < 7; i++) { week.push(new Date(current)); current = addDays(current, 1) }
+    weeks.push(week)
+  }
+  return weeks
 }
 
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+interface WeekEvent { order: Order; colStart: number; colSpan: number }
+
+function getEventsForWeek(termine: Order[], weekStart: Date): WeekEvent[] {
+  const weekEnd = addDays(weekStart, 7)
+  const result: WeekEvent[] = []
+  for (const order of termine) {
+    if (!order.termin_datum) continue
+    const start = new Date(order.termin_datum)
+    const end   = new Date(start.getTime() + (order.termin_dauer_minuten ?? 60) * 60 * 1000)
+    if (end <= weekStart || start >= weekEnd) continue
+    const clampedStart = start < weekStart ? weekStart : start
+    const clampedEnd   = end   > weekEnd   ? weekEnd   : end
+    const dayStart = Math.floor((clampedStart.getTime() - weekStart.getTime()) / 86400000)
+    const dayEnd   = Math.ceil ((clampedEnd.getTime()   - weekStart.getTime()) / 86400000)
+    result.push({ order, colStart: dayStart + 1, colSpan: Math.max(1, dayEnd - dayStart) })
+  }
+  return result
 }
 
 export default function KalenderPage() {
   const router = useRouter()
   const [werkstattId, setWerkstattId] = useState('')
   const [loading, setLoading]         = useState(true)
-  const [wochenstart, setWochenstart] = useState<Date>(() => getMondayOf(new Date()))
+  const [year,  setYear]              = useState(new Date().getFullYear())
+  const [month, setMonth]             = useState(new Date().getMonth())
   const [termine, setTermine]         = useState<Order[]>([])
 
   useEffect(() => {
@@ -55,26 +79,24 @@ export default function KalenderPage() {
   useEffect(() => {
     if (!werkstattId) return
     setLoading(true)
-    const von = wochenstart
-    const bis = addDays(wochenstart, 6)
+    const von = getMondayOf(new Date(year, month, 1))
+    const bis = addDays(von, 42)
     bis.setHours(23, 59, 59, 999)
     fetchTermine(werkstattId, von, bis).then((data) => {
       setTermine(data)
       setLoading(false)
     })
-  }, [werkstattId, wochenstart])
+  }, [werkstattId, year, month])
 
-  const wochende = addDays(wochenstart, 6)
+  function prevMonth() {
+    if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 11) { setYear(y => y + 1); setMonth(0) } else setMonth(m => m + 1)
+  }
 
-  const termineAmTag = (tag: Date): Order[] =>
-    termine.filter((o) => {
-      if (!o.termin_datum) return false
-      const start = new Date(o.termin_datum)
-      const end   = new Date(start.getTime() + (o.termin_dauer_minuten ?? 60) * 60 * 1000)
-      const tagStart = new Date(tag); tagStart.setHours(0, 0, 0, 0)
-      const tagEnd   = new Date(tag); tagEnd.setHours(23, 59, 59, 999)
-      return start <= tagEnd && end > tagStart
-    })
+  const weeks = getWeeksOfMonth(year, month)
+  const today = new Date()
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -86,28 +108,18 @@ export default function KalenderPage() {
           <ChevronLeft size={20} />
         </button>
         <VoxaroLogo size="sm" />
-        <span className="text-sm font-medium text-zinc-300 ml-1">Kalender</span>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setWochenstart((w) => addDays(w, -7))}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-          >
+        <span className="text-base font-semibold ml-1">
+          {MONATE[month]} {year}
+        </span>
+        <div className="ml-auto flex items-center gap-1">
+          <button onClick={prevMonth} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
             <ChevronLeft size={16} />
           </button>
-          <span className="text-xs text-zinc-400 min-w-[130px] text-center">
-            {wochenstart.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
-            {' – '}
-            {wochende.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-          </span>
-          <button
-            onClick={() => setWochenstart((w) => addDays(w, 7))}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-          >
+          <button onClick={nextMonth} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
             <ChevronRight size={16} />
           </button>
           <button
-            onClick={() => setWochenstart(getMondayOf(new Date()))}
+            onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()) }}
             className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors ml-1"
           >
             Heute
@@ -121,73 +133,70 @@ export default function KalenderPage() {
           Lade Termine…
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-2 py-4 overflow-x-auto">
-          <div className="grid grid-cols-7 gap-2 min-w-[600px]">
-            {TAGE.map((tag, i) => {
-              const tagDatum  = addDays(wochenstart, i)
-              const isToday   = sameDay(tagDatum, new Date())
-              const eintraege = termineAmTag(tagDatum)
-
-              return (
-                <div key={tag} className="flex flex-col gap-1.5">
-                  {/* Spaltenheader */}
-                  <div className={[
-                    'text-center py-2 rounded-xl text-xs font-semibold',
-                    isToday
-                      ? 'bg-orange-500/20 text-orange-300 border border-orange-700'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400',
-                  ].join(' ')}>
-                    <div>{tag}</div>
-                    <div className="text-[10px] opacity-70">
-                      {tagDatum.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
-                    </div>
-                  </div>
-
-                  {/* Termin-Karten */}
-                  {eintraege.length === 0 ? (
-                    <div className="border border-dashed border-zinc-800 rounded-xl h-20 flex items-center justify-center text-zinc-700 text-[10px]">
-                      frei
-                    </div>
-                  ) : (
-                    eintraege.map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => router.push(`/auftraege/${o.id}`)}
-                        className="w-full text-left bg-zinc-900 border border-zinc-700 hover:border-orange-500 rounded-xl px-2.5 py-2 transition-colors space-y-0.5"
-                      >
-                        <p className="text-xs font-medium text-zinc-100 truncate">
-                          {o.kunden_name || '—'}
-                        </p>
-                        <p className="text-[10px] text-zinc-400 truncate">{o.fahrzeug || '—'}</p>
-                        <p className="text-[10px] text-orange-400">
-                          {new Date(o.termin_datum!).toLocaleTimeString('de-DE', {
-                            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
-                          })} Uhr
-                          {o.termin_dauer_minuten ? ` · ${formatDauer(o.termin_dauer_minuten)}` : ''}
-                        </p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )
-            })}
+        <div className="max-w-6xl mx-auto">
+          {/* Wochentag-Header */}
+          <div className="grid grid-cols-7 border-b border-zinc-800">
+            {WOCHENTAGE.map((tag) => (
+              <div
+                key={tag}
+                className="py-2 text-center text-[11px] font-semibold text-zinc-500 uppercase tracking-wider border-r border-zinc-800 last:border-r-0"
+              >
+                {tag}
+              </div>
+            ))}
           </div>
 
-          {/* Legende */}
-          <div className="mt-6 flex items-center gap-4 text-[10px] text-zinc-600 px-1">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 border border-dashed border-zinc-700 rounded" />
-              Freier Tag
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-zinc-900 border border-zinc-700 rounded" />
-              Termin vorhanden
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-orange-500/20 border border-orange-700 rounded" />
-              Heute
-            </span>
-          </div>
+          {/* Wochen-Reihen */}
+          {weeks.map((week, wi) => {
+            const events = getEventsForWeek(termine, week[0])
+            return (
+              <div
+                key={wi}
+                className="grid grid-cols-7 border-b border-zinc-800"
+                style={{ minHeight: `${80 + events.length * 26}px` }}
+              >
+                {/* Tageszahlen — füllen automatisch Zeile 1 */}
+                {week.map((day, di) => {
+                  const isToday        = day.toDateString() === today.toDateString()
+                  const isCurrentMonth = day.getMonth() === month
+                  return (
+                    <div
+                      key={di}
+                      className="p-1.5 border-r border-zinc-800 last:border-r-0"
+                    >
+                      <span className={[
+                        'text-sm font-medium inline-flex w-7 h-7 items-center justify-center rounded-full',
+                        isToday
+                          ? 'bg-orange-500 text-white'
+                          : isCurrentMonth
+                            ? 'text-zinc-300'
+                            : 'text-zinc-700',
+                      ].join(' ')}>
+                        {day.getDate()}
+                      </span>
+                    </div>
+                  )
+                })}
+
+                {/* Termin-Balken — ab Zeile 2, spannen über Spalten */}
+                {events.map(({ order, colStart, colSpan }) => (
+                  <button
+                    key={order.id}
+                    onClick={() => router.push(`/auftraege/${order.id}`)}
+                    style={{ gridColumn: `${colStart} / span ${colSpan}` }}
+                    className="mx-0.5 mb-0.5 h-6 px-2 rounded text-xs font-medium text-white bg-blue-500 hover:bg-blue-400 text-left truncate transition-colors flex items-center gap-1"
+                  >
+                    <span className="opacity-75 shrink-0">
+                      {new Date(order.termin_datum!).toLocaleTimeString('de-DE', {
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
+                      })}
+                    </span>
+                    <span className="truncate">{order.kunden_name || order.fahrzeug || 'Termin'}</span>
+                  </button>
+                ))}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
