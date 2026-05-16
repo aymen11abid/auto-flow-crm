@@ -239,3 +239,31 @@ export async function markStatusAnfrageErledigt(id: string): Promise<string | nu
     .eq('id', id)
   return error?.message ?? null
 }
+
+export async function saveTermin(
+  id: string,
+  termin_datum: string | null,
+  termin_dauer_minuten: number | null
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('auftraege')
+    .update({ termin_datum, termin_dauer_minuten })
+    .eq('id', id)
+  return error?.message ?? null
+}
+
+export async function fetchTermine(
+  werkstatt_id: string,
+  von: Date,
+  bis: Date
+): Promise<Order[]> {
+  const { data } = await supabase
+    .from('auftraege')
+    .select('id, kunden_name, fahrzeug, termin_datum, termin_dauer_minuten, status, kunden_telefonnummer')
+    .eq('werkstatt_id', werkstatt_id)
+    .gte('termin_datum', von.toISOString())
+    .lte('termin_datum', bis.toISOString())
+    .is('geloescht_am', null)
+    .order('termin_datum', { ascending: true })
+  return (data ?? []) as Order[]
+}

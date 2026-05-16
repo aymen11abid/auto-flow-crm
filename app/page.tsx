@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall } from 'lucide-react'
+import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall, CalendarDays } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
@@ -228,6 +228,12 @@ export default function Dashboard() {
               )}
             </div>
 
+            <button onClick={() => router.push('/kalender')}
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              title="Kalender"
+            >
+              <CalendarDays size={16} />
+            </button>
             <button onClick={() => loadOrders()}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"

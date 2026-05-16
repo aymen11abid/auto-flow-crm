@@ -30,6 +30,8 @@ export interface Order {
   portal_token: string | null
   portal_sms_gesendet_am: string | null
   portal_fertig_sms_gesendet_am: string | null
+  termin_datum: string | null
+  termin_dauer_minuten: number | null
 }
 
 export interface PublicOrder {

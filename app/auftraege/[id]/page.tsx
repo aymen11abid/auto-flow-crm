@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
-  Plus, Trash2, Send, Camera, X,
+  Plus, Trash2, Send, Camera, X, CalendarDays,
 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
-import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus } from '@/lib/db'
+import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
@@ -37,6 +37,12 @@ export default function AuftragDetailPage() {
   const [sending, setSending]       = useState(false)
   const [sendError, setSendError]   = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [terminDatum, setTerminDatum]         = useState('')
+  const [terminDauer, setTerminDauer]         = useState<number>(60)
+  const [terminEditing, setTerminEditing]     = useState(false)
+  const [terminSaving, setTerminSaving]       = useState(false)
+  const [terminSmsing, setTerminSmsing]       = useState(false)
+  const [terminError, setTerminError]         = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +53,12 @@ export default function AuftragDetailPage() {
           setOrder(order)
           setKommentare(kommentare)
           setFreigaben(freigaben)
+          if (order.termin_datum) {
+            const d = new Date(order.termin_datum)
+            const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            setTerminDatum(local.toISOString().slice(0, 16))
+          }
+          if (order.termin_dauer_minuten) setTerminDauer(order.termin_dauer_minuten)
           setLoadingPage(false)
         }
       )
@@ -147,6 +159,30 @@ export default function AuftragDetailPage() {
       setEditing(false)
     }
     setSavingEdit(false)
+  }
+
+  async function handleSaveTermin(sendSms: boolean) {
+    if (!order || terminSaving || terminSmsing) return
+    setTerminError(null)
+    if (sendSms) setTerminSmsing(true); else setTerminSaving(true)
+    const isoTermin = terminDatum ? new Date(terminDatum).toISOString() : null
+    const err = await saveTermin(order.id, isoTermin, terminDauer || null)
+    if (err) { setTerminError(err); setTerminSaving(false); setTerminSmsing(false); return }
+    setOrder({ ...order, termin_datum: isoTermin, termin_dauer_minuten: terminDauer || null })
+    setTerminEditing(false)
+    if (sendSms && isoTermin) {
+      const res = await fetch('/api/termin-bestaetigung', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setTerminError(data.error ?? 'SMS-Versand fehlgeschlagen')
+      }
+    }
+    setTerminSaving(false)
+    setTerminSmsing(false)
   }
 
   async function handleAddKommentar() {
@@ -338,6 +374,103 @@ export default function AuftragDetailPage() {
             )}
           </Section>
         )}
+
+        {/* Termin */}
+        <Section title="Termin" icon={<CalendarDays size={14} />}>
+          {terminEditing ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-500">Datum & Uhrzeit</label>
+                <input
+                  type="datetime-local"
+                  value={terminDatum}
+                  onChange={(e) => setTerminDatum(e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-500">Dauer</label>
+                <select
+                  value={terminDauer}
+                  onChange={(e) => setTerminDauer(Number(e.target.value))}
+                  className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+                >
+                  <option value={30}>30 Minuten</option>
+                  <option value={60}>1 Stunde</option>
+                  <option value={120}>2 Stunden</option>
+                  <option value={180}>3 Stunden</option>
+                  <option value={240}>4 Stunden</option>
+                  <option value={480}>1 Tag</option>
+                  <option value={960}>2 Tage</option>
+                  <option value={1440}>3 Tage</option>
+                </select>
+              </div>
+              {terminError && <p className="text-red-400 text-xs">{terminError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTerminEditing(false)}
+                  className="flex-1 text-sm py-2.5 rounded-xl bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={() => handleSaveTermin(false)}
+                  disabled={terminSaving || terminSmsing || !terminDatum}
+                  className="flex-1 text-sm py-2.5 rounded-xl bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 text-white font-medium transition-colors"
+                >
+                  {terminSaving ? <Loader size={14} className="animate-spin mx-auto" /> : 'Speichern'}
+                </button>
+                <button
+                  onClick={() => handleSaveTermin(true)}
+                  disabled={terminSaving || terminSmsing || !terminDatum}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white font-medium transition-colors"
+                >
+                  {terminSmsing ? <Loader size={14} className="animate-spin" /> : <Send size={14} />}
+                  + SMS
+                </button>
+              </div>
+            </div>
+          ) : order.termin_datum ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-100">
+                    {new Date(order.termin_datum).toLocaleString('de-DE', {
+                      weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin',
+                    })} Uhr
+                  </p>
+                  {order.termin_dauer_minuten && (
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Dauer: {order.termin_dauer_minuten < 60
+                        ? `${order.termin_dauer_minuten} Min`
+                        : order.termin_dauer_minuten % 480 === 0
+                          ? `${order.termin_dauer_minuten / 480} Tag${order.termin_dauer_minuten > 480 ? 'e' : ''}`
+                          : `${order.termin_dauer_minuten / 60} Std`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setTerminEditing(true)}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+                >
+                  Ändern
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-zinc-600">Noch kein Termin vereinbart.</p>
+              <button
+                onClick={() => setTerminEditing(true)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+              >
+                <Plus size={12} />
+                Termin setzen
+              </button>
+            </div>
+          )}
+        </Section>
 
         {/* Zusatzarbeiten */}
         <Section title="Zusatzarbeiten">
