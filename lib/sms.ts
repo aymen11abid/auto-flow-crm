@@ -1,5 +1,13 @@
+function normalizePhone(nr: string): string {
+  const clean = nr.replace(/\s/g, '')
+  if (clean.startsWith('00')) return '+' + clean.slice(2)
+  if (clean.startsWith('0'))  return '+49' + clean.slice(1)
+  return clean
+}
+
 export async function sendSms(to: string, body: string): Promise<void> {
-  await fetch(
+  const normalized = normalizePhone(to)
+  const res = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
     {
       method: 'POST',
@@ -11,11 +19,17 @@ export async function sendSms(to: string, body: string): Promise<void> {
       },
       body: new URLSearchParams({
         From: process.env.TWILIO_FROM_NUMBER!,
-        To:   to,
+        To:   normalized,
         Body: body,
       }).toString(),
     }
   )
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    console.error('[voxaro] SMS fehlgeschlagen', { to: normalized, status: res.status, twilio: data })
+    throw new Error(`SMS fehlgeschlagen (${res.status}): ${(data as { message?: string }).message ?? 'unbekannt'}`)
+  }
+  console.log('[voxaro] SMS gesendet an', normalized)
 }
 
 export async function sendMeisterAlert(text: string): Promise<void> {
