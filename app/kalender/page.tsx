@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchTermine } from '@/lib/db'
-import { getGermanHolidays, holidayKey } from '@/lib/feiertage'
+import { getGermanHolidays, holidayKey, addWorkingDays } from '@/lib/feiertage'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import type { Order } from '@/lib/types'
 
@@ -44,24 +44,22 @@ function getWeeksOfMonth(year: number, month: number): Date[][] {
 
 interface WeekEvent { order: Order; colStart: number; colSpan: number }
 
-function effectiveEnd(order: Order): Date {
-  const start     = new Date(order.termin_datum!)
-  const dauer     = order.termin_dauer_minuten ?? 60
-  // Mehrtägige Termine: Kalendertag-Grenze (Mitternacht nach letztem Tag)
+function effectiveEnd(order: Order, holidays: Map<string, string>): Date {
+  const start = new Date(order.termin_datum!)
+  const dauer = order.termin_dauer_minuten ?? 60
   if (dauer >= 1440) {
-    const startDay = new Date(start); startDay.setHours(0, 0, 0, 0)
-    return addDays(startDay, Math.round(dauer / 1440))
+    return addWorkingDays(start, Math.round(dauer / 1440), holidays)
   }
   return new Date(start.getTime() + dauer * 60000)
 }
 
-function getEventsForWeek(termine: Order[], weekStart: Date): WeekEvent[] {
+function getEventsForWeek(termine: Order[], weekStart: Date, holidays: Map<string, string>): WeekEvent[] {
   const weekEnd = addDays(weekStart, 7)
   const result: WeekEvent[] = []
   for (const order of termine) {
     if (!order.termin_datum) continue
     const start = new Date(order.termin_datum)
-    const end   = effectiveEnd(order)
+    const end   = effectiveEnd(order, holidays)
     if (end <= weekStart || start >= weekEnd) continue
     const clampedStart = start < weekStart ? weekStart : start
     const clampedEnd   = end   > weekEnd   ? weekEnd   : end
@@ -168,7 +166,7 @@ export default function KalenderPage() {
 
           {/* Wochen-Reihen */}
           {weeks.map((week, wi) => {
-            const events = getEventsForWeek(termine, week[0])
+            const events = getEventsForWeek(termine, week[0], holidays)
             return (
               <div
                 key={wi}

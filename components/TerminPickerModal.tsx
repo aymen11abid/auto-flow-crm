@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, X, Check, Loader } from 'lucide-react'
 import { fetchTermine } from '@/lib/db'
-import { getGermanHolidays, holidayKey } from '@/lib/feiertage'
+import { getGermanHolidays, holidayKey, addWorkingDays } from '@/lib/feiertage'
 import type { Order } from '@/lib/types'
 
 const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -32,21 +32,20 @@ function sameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString()
 }
 
-function effectiveEnd(o: Order): Date {
+function effectiveEnd(o: Order, holidays: Map<string, string>): Date {
   const start = new Date(o.termin_datum!)
   const dauer = o.termin_dauer_minuten ?? 60
   if (dauer >= 1440) {
-    const startDay = new Date(start); startDay.setHours(0, 0, 0, 0)
-    return addDays(startDay, Math.round(dauer / 1440))
+    return addWorkingDays(start, Math.round(dauer / 1440), holidays)
   }
   return new Date(start.getTime() + dauer * 60000)
 }
 
-function termineAmTag(termine: Order[], tag: Date): Order[] {
+function termineAmTag(termine: Order[], tag: Date, holidays: Map<string, string>): Order[] {
   return termine.filter((o) => {
     if (!o.termin_datum) return false
     const start    = new Date(o.termin_datum)
-    const end      = effectiveEnd(o)
+    const end      = effectiveEnd(o, holidays)
     const tagStart = new Date(tag); tagStart.setHours(0, 0, 0, 0)
     const tagEnd   = addDays(tagStart, 1)
     return start < tagEnd && end > tagStart
@@ -102,7 +101,7 @@ export default function TerminPickerModal({
     ...getGermanHolidays(wochenstart.getFullYear()),
     ...getGermanHolidays(wochenstart.getFullYear() + 1),
   ])
-  const selectedDayTermine = selectedDay ? termineAmTag(termine, selectedDay) : []
+  const selectedDayTermine = selectedDay ? termineAmTag(termine, selectedDay, holidays) : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 px-2 pb-2 sm:pb-0">
@@ -143,7 +142,7 @@ export default function TerminPickerModal({
             const day         = addDays(wochenstart, i)
             const isToday     = sameDay(day, today)
             const isSelected  = !!selectedDay && sameDay(day, selectedDay)
-            const dayTermine  = termineAmTag(termine, day)
+            const dayTermine  = termineAmTag(termine, day, holidays)
             const isBusy      = dayTermine.length > 0
             const isWeekend   = i >= 5
             const holidayName = holidays.get(holidayKey(day))

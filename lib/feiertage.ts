@@ -53,3 +53,17 @@ export function getGermanHolidays(year: number): Map<string, string> {
 export function holidayKey(date: Date): string {
   return key(date)
 }
+
+export function addWorkingDays(start: Date, numDays: number, holidays: Map<string, string>): Date {
+  let current = new Date(start)
+  current.setHours(0, 0, 0, 0)
+  let remaining = numDays
+  while (remaining > 0) {
+    const dow = current.getDay()
+    if (dow !== 0 && dow !== 6 && !holidays.has(key(current))) {
+      remaining--
+    }
+    if (remaining > 0) current = offset(current, 1)
+  }
+  return offset(current, 1)
+}
