@@ -9,13 +9,6 @@ function getSupabase() {
   )
 }
 
-function normalizePhone(nr: string): string {
-  const clean = nr.replace(/\s/g, '')
-  if (clean.startsWith('00')) return '+' + clean.slice(2)
-  if (clean.startsWith('0')) return '+49' + clean.slice(1)
-  return clean
-}
-
 function formatTermin(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('de-DE', {
@@ -67,11 +60,9 @@ export async function POST(request: NextRequest) {
     `${formatTermin(order.termin_datum)}\n` +
     `Bei Fragen rufen Sie uns an.`
 
-  try {
-    await sendSms(normalizePhone(order.kunden_telefonnummer), text)
-    return NextResponse.json({ success: true })
-  } catch (err) {
-    const error = err instanceof Error ? err.message : 'SMS-Fehler'
-    return NextResponse.json({ success: false, error }, { status: 500 })
+  const result = await sendSms(order.kunden_telefonnummer, text)
+  if (!result.ok) {
+    return NextResponse.json({ success: false, error: result.error }, { status: 500 })
   }
+  return NextResponse.json({ success: true })
 }
