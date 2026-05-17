@@ -223,8 +223,10 @@ export default function AuftragDetailPage() {
         werkstattId={order.werkstatt_id}
         currentOrderId={order.id}
         initialDatum={terminDatum}
-        onSelect={(datum) => {
+        initialDauer={terminDauer}
+        onSelect={(datum, dauer) => {
           setTerminDatum(datum)
+          setTerminDauer(dauer)
           setTerminEditing(true)
           setTerminModalOpen(false)
         }}

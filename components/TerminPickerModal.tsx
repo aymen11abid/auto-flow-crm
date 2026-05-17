@@ -56,12 +56,13 @@ interface Props {
   werkstattId: string
   currentOrderId: string
   initialDatum: string
-  onSelect: (datum: string) => void
+  initialDauer: number
+  onSelect: (datum: string, dauer: number) => void
   onClose: () => void
 }
 
 export default function TerminPickerModal({
-  werkstattId, currentOrderId, initialDatum, onSelect, onClose,
+  werkstattId, currentOrderId, initialDatum, initialDauer, onSelect, onClose,
 }: Props) {
   const base = initialDatum ? new Date(initialDatum) : new Date()
 
@@ -76,6 +77,7 @@ export default function TerminPickerModal({
     }
     return '09:00'
   })
+  const [selectedDauer, setSelectedDauer] = useState<number>(initialDauer)
 
   useEffect(() => {
     setLoading(true)
@@ -93,7 +95,7 @@ export default function TerminPickerModal({
     const result = new Date(selectedDay)
     result.setHours(h, m, 0, 0)
     const local = new Date(result.getTime() - result.getTimezoneOffset() * 60000)
-    onSelect(local.toISOString().slice(0, 16))
+    onSelect(local.toISOString().slice(0, 16), selectedDauer)
   }
 
   const today = new Date()
@@ -249,6 +251,27 @@ export default function TerminPickerModal({
                   onChange={(e) => setSelectedTime(e.target.value)}
                   className="flex-1 bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none"
                 />
+              </div>
+
+              {/* Dauer-Picker */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-zinc-500 shrink-0 w-14">Dauer</label>
+                <select
+                  value={selectedDauer}
+                  onChange={(e) => setSelectedDauer(Number(e.target.value))}
+                  className="flex-1 bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-3 py-2 text-sm text-zinc-100 outline-none"
+                >
+                  <option value={30}>30 Minuten</option>
+                  <option value={60}>1 Stunde</option>
+                  <option value={120}>2 Stunden</option>
+                  <option value={180}>3 Stunden</option>
+                  <option value={240}>4 Stunden</option>
+                  <option value={1440}>1 Tag</option>
+                  <option value={2880}>2 Tage</option>
+                  <option value={4320}>3 Tage</option>
+                  <option value={5760}>4 Tage</option>
+                  <option value={7200}>5 Tage</option>
+                </select>
               </div>
             </>
           )}
