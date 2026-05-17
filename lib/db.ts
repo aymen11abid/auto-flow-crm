@@ -175,12 +175,33 @@ export async function resolveFreigabePosition(
   batchToken: string,
   result: 'approved' | 'rejected'
 ): Promise<string | null> {
+  // SQL: ALTER TABLE auftraege DROP CONSTRAINT IF EXISTS auftraege_freigabe_ergebnis_check;
+  // ALTER TABLE auftraege ADD CONSTRAINT auftraege_freigabe_ergebnis_check
+  //   CHECK (freigabe_ergebnis IN ('approved', 'rejected', 'partial'));
   const { error } = await supabase
     .from('freigaben')
     .update({ ergebnis: result, entschieden_am: new Date().toISOString() })
     .eq('id', freigabeId)
     .eq('batch_token', batchToken)
-  return error?.message ?? null
+  if (error) return error.message
+
+  const { data: alle } = await supabase
+    .from('freigaben')
+    .select('ergebnis, auftrag_id')
+    .eq('batch_token', batchToken)
+
+  if (!alle || alle.some((f) => f.ergebnis === null)) return null
+
+  const auftragId   = alle[0].auftrag_id
+  const alleApproved = alle.every((f) => f.ergebnis === 'approved')
+  const alleRejected = alle.every((f) => f.ergebnis === 'rejected')
+  const orderResult  = alleApproved ? 'approved' : alleRejected ? 'rejected' : 'partial'
+
+  const { error: orderError } = await supabase
+    .from('auftraege')
+    .update({ freigabe_ergebnis: orderResult })
+    .eq('id', auftragId)
+  return orderError?.message ?? null
 }
 
 export async function fetchFreigabenByAuftrag(auftragId: string): Promise<Freigabe[]> {

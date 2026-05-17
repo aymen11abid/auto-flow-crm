@@ -24,6 +24,7 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
   const hasFreigabe        = !!order.freigabe_token
   const freigabeApproved   = order.freigabe_ergebnis === 'approved'
   const freigabeRejected   = order.freigabe_ergebnis === 'rejected'
+  const freigabePartial    = order.freigabe_ergebnis === 'partial'
   const freigabePending    = hasFreigabe && !order.freigabe_ergebnis
 
   return (
@@ -142,13 +143,16 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
               'flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg w-fit',
               freigabeApproved ? 'bg-green-950/60 text-green-400 border border-green-800' :
               freigabeRejected ? 'bg-red-950/60 text-red-400 border border-red-800' :
+              freigabePartial  ? 'bg-orange-950/60 text-orange-400 border border-orange-800' :
               'bg-yellow-950/50 text-yellow-400 border border-yellow-800',
             ].join(' ')}>
               {freigabeApproved && <CheckCircle2 size={12} />}
               {freigabeRejected && <XCircle size={12} />}
+              {freigabePartial  && <AlertTriangle size={12} />}
               {freigabePending  && <Clock size={12} className="animate-pulse" />}
               {freigabeApproved && `Freigegeben${order.freigabe_betrag ? ` · ${order.freigabe_betrag.toFixed(2)} €` : ''}`}
               {freigabeRejected && 'Abgelehnt — Rückruf nötig'}
+              {freigabePartial  && 'Teilweise abgelehnt — Rückruf nötig'}
               {freigabePending  && `Wartet auf Freigabe${order.freigabe_betrag ? ` · ${order.freigabe_betrag.toFixed(2)} €` : ''}`}
             </div>
           )}

@@ -25,7 +25,7 @@ export interface Order {
   freigabe_foto_url: string | null
   freigabe_betrag: number | null
   freigabe_angefragt_am: string | null
-  freigabe_ergebnis: 'approved' | 'rejected' | null
+  freigabe_ergebnis: 'approved' | 'rejected' | 'partial' | null
   status_abgefragt_am: string | null
   portal_token: string | null
   portal_sms_gesendet_am: string | null
