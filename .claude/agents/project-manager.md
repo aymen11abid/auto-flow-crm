@@ -37,6 +37,21 @@ Deine Aufgaben:
   - Blockiert durch: Telnyx-Nummer muss aktiv sein (72h nach Adressnachweis)
   - Schätzung: ~2h
 
+✅ Ticket #8 — Kennzeichen + E-Mail Felder (2026-05-18)
+  - Neue Spalten: kennzeichen, kunden_email in auftraege
+  - Formular, Detail-Seite, OrderCard, Dashboard-Suche aktualisiert
+  - Vapi order-lookup sucht jetzt auch in kennzeichen-Spalte (OR-Query)
+
+✅ Ticket #9 — Samir Prompt auf VapiPromp.md Standard (2026-05-18)
+  - Beide Prompts (Aymen + Malik) auf [Identity][Style][Task][Rules] Format
+  - <wait for user response> und <wait for tool response> Tags
+  - endCallPhrases "tschüss" statt end_call_Tool im Abschluss-Pfad
+  - VapiPromp.md als Pflicht-Referenz für alle zukünftigen Prompt-Änderungen
+
+## Offene Punkte (kein Ticket, aber wichtig)
+- Malik Dashboard-Prompt in Vapi noch nicht aktualisiert (manuell im Vapi Dashboard)
+- rueckruf_gewuenscht Parameter muss in Vapi Tool-Konfiguration eingetragen werden
+
 Kommuniziere immer strukturiert:
 ✅ Abgeschlossen | 🔄 In Arbeit | ⏳ Offen | 🚨 Blockiert
 

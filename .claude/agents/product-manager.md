@@ -23,3 +23,34 @@ Dein Filter für jede Feature-Entscheidung:
 3. Ist es in unter 10 Minuten erklärbar?
 
 Falls nein zu allen dreien → nicht bauen.
+
+## Was bereits gebaut ist (Stand 2026-05-18)
+
+### Core CRM
+- Aufträge mit: Name, Telefon, E-Mail, Kennzeichen, Fahrzeug, Problem, Status
+- Status-Dropdown direkt auf Dashboard + Detailseite
+- Suche nach Name, Telefon, Kennzeichen, Fahrzeug, Problem
+- Filter nach Status + Datum, Soft-Delete mit Löschgrund
+- Kommentare pro Auftrag (internes Notizbuch)
+
+### KI-Assistent Samir (Vapi)
+- Nimmt Anrufe an wenn Werkstatt besetzt/nicht erreichbar
+- Statusabfrage per Telefonnummer, Fallback per Kennzeichen (FRAGE_KENNZEICHEN)
+- Nimmt Terminanfragen entgegen
+- Rückrufwunsch → eskalation_rueckruf → roter Badge im Dashboard
+- Verabschiedet sich, legt via endCallPhrases automatisch auf
+
+### Kundenportal
+- SMS bei "In Bearbeitung" → Link zum Portal mit Status-Timeline
+- SMS bei "Abgeschlossen" → "Fahrzeug ist fertig"
+- Portal zeigt Zusatzarbeiten mit Freigabe-Buttons
+
+### Zusatzarbeiten / Freigaben
+- Mehrere Positionen gleichzeitig anfragen (Name + Betrag)
+- Kunde entscheidet jede Position einzeln per SMS-Link
+- Badge "X von Y offen" mit pulsierendem Rahmen
+
+### Benachrichtigungen
+- "Kunde informiert" Badge nach Samir-Statusmitteilung
+- "Rückrufer" Badge für Wiederhol-Anrufer
+- Realtime-Alert bei neuer Eskalation

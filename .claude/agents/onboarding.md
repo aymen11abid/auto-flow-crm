@@ -125,8 +125,27 @@ NEXT_PUBLIC_APP_URL = https://voxaro.vercel.app
 
 1. Mit eigenem Handy die Telnyx-Nummer anrufen
 2. Samir antwortet → Testauftrag im System vorhanden?
-3. Status "warten_auf_freigabe" → SMS-Link prüfen
-4. Alles OK → Kunde ist live ✓
+3. Status auf "In Bearbeitung" setzen → Portal-SMS prüfen
+4. Zusatzarbeit anfragen → Freigabe-SMS prüfen
+5. Alles OK → Kunde ist live ✓
+
+#### 2.7 Vapi — End Call Phrases konfigurieren
+
+Im Vapi Dashboard → Assistant → Advanced → End Call Phrases:
+```
+tschüss
+```
+Damit beendet Samir das Gespräch korrekt nach der Verabschiedung.
+
+#### 2.8 Vapi — Tool check_auftrag_status — Parameter rueckruf_gewuenscht eintragen
+
+Im Tool-Editor den Parameter ergänzen:
+```json
+"rueckruf_gewuenscht": {
+  "type": "boolean",
+  "description": "true wenn Kunde explizit Rückruf wünscht"
+}
+```
 
 ---
 
