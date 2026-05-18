@@ -96,7 +96,7 @@ export async function resolveFreigabe(
 
 export async function updateOrderFields(
   id: string,
-  data: { kunden_telefonnummer: string; fahrzeug: string; problem_beschreibung: string }
+  data: { kunden_telefonnummer: string; fahrzeug: string; problem_beschreibung: string; kennzeichen: string | null; kunden_email: string | null }
 ): Promise<string | null> {
   const { error } = await supabase.from('auftraege').update(data).eq('id', id)
   return error?.message ?? null

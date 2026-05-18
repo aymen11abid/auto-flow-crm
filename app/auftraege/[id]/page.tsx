@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ChevronLeft, Phone, AlertTriangle, Loader,
+  ChevronLeft, Phone, Mail, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
   Plus, Trash2, Send, Camera, X, CalendarDays, Ban,
 } from 'lucide-react'
@@ -30,7 +30,7 @@ export default function AuftragDetailPage() {
   const [error, setError]           = useState<string | null>(null)
   const textareaRef                 = useRef<HTMLTextAreaElement>(null)
   const [editing, setEditing]       = useState(false)
-  const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '' })
+  const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '', kennzeichen: null as string | null, kunden_email: null as string | null })
   const [savingEdit, setSavingEdit] = useState(false)
   const [freigaben, setFreigaben]   = useState<Freigabe[]>([])
   const [showModal, setShowModal]   = useState(false)
@@ -146,6 +146,8 @@ export default function AuftragDetailPage() {
       kunden_telefonnummer: order.kunden_telefonnummer,
       fahrzeug:             order.fahrzeug,
       problem_beschreibung: order.problem_beschreibung,
+      kennzeichen:          order.kennzeichen,
+      kunden_email:         order.kunden_email,
     })
     setEditing(true)
   }
@@ -311,7 +313,10 @@ export default function AuftragDetailPage() {
             )}
           </div>
           <h1 className="text-2xl font-bold text-zinc-100 mt-2">{order.kunden_name}</h1>
-          <p className="text-zinc-400 text-sm mt-0.5">{order.fahrzeug}</p>
+          <p className="text-zinc-400 text-sm mt-0.5">
+            {order.fahrzeug}
+            {order.kennzeichen && <span className="ml-2 text-zinc-500">· {order.kennzeichen}</span>}
+          </p>
           <p className="text-xs text-zinc-600 mt-2">
             {new Date(order.erstellt_am).toLocaleString('de-DE', {
               day: '2-digit', month: '2-digit', year: 'numeric',
@@ -323,34 +328,67 @@ export default function AuftragDetailPage() {
         {/* Kontakt */}
         <Section title="Kontakt">
           {editing ? (
-            <input
-              type="tel"
-              value={editForm.kunden_telefonnummer}
-              onChange={(e) => setEditForm({ ...editForm, kunden_telefonnummer: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="tel"
+                value={editForm.kunden_telefonnummer}
+                onChange={(e) => setEditForm({ ...editForm, kunden_telefonnummer: e.target.value })}
+                placeholder="Telefonnummer"
+                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+              />
+              <input
+                type="email"
+                value={editForm.kunden_email ?? ''}
+                onChange={(e) => setEditForm({ ...editForm, kunden_email: e.target.value || null })}
+                placeholder="E-Mail (optional)"
+                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+              />
+            </div>
           ) : (
-            <a
-              href={`tel:${order.kunden_telefonnummer}`}
-              className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl px-4 py-3 transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-                <Phone size={15} className="text-orange-400" />
-              </div>
-              <span className="text-sm font-medium">{order.kunden_telefonnummer || '—'}</span>
-            </a>
+            <div className="flex flex-col gap-2">
+              <a
+                href={`tel:${order.kunden_telefonnummer}`}
+                className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl px-4 py-3 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                  <Phone size={15} className="text-orange-400" />
+                </div>
+                <span className="text-sm font-medium">{order.kunden_telefonnummer || '—'}</span>
+              </a>
+              {order.kunden_email && (
+                <a
+                  href={`mailto:${order.kunden_email}`}
+                  className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl px-4 py-3 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                    <Mail size={15} className="text-orange-400" />
+                  </div>
+                  <span className="text-sm font-medium">{order.kunden_email}</span>
+                </a>
+              )}
+            </div>
           )}
         </Section>
 
         {/* Fahrzeug */}
         {editing && (
           <Section title="Fahrzeug">
-            <input
-              type="text"
-              value={editForm.fahrzeug}
-              onChange={(e) => setEditForm({ ...editForm, fahrzeug: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={editForm.kennzeichen ?? ''}
+                onChange={(e) => setEditForm({ ...editForm, kennzeichen: e.target.value || null })}
+                placeholder="Kennzeichen (optional)"
+                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+              />
+              <input
+                type="text"
+                value={editForm.fahrzeug}
+                onChange={(e) => setEditForm({ ...editForm, fahrzeug: e.target.value })}
+                placeholder="Fahrzeug"
+                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+              />
+            </div>
           </Section>
         )}
 

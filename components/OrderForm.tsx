@@ -59,6 +59,22 @@ export default function OrderForm({ werkstattId, onSuccess, onCancel }: Props) {
           />
         </div>
         <div className="flex flex-col gap-1">
+          <label className="text-xs text-zinc-400">Kennzeichen</label>
+          <input value={form.kennzeichen ?? ''}
+            onChange={(e) => setForm({ ...form, kennzeichen: e.target.value || null })}
+            placeholder="DA-AB 1234"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-zinc-400">E-Mail</label>
+          <input type="email" value={form.kunden_email ?? ''}
+            onChange={(e) => setForm({ ...form, kunden_email: e.target.value || null })}
+            placeholder="kunde@email.de"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="text-xs text-zinc-400">Fahrzeug *</label>
           <input required value={form.fahrzeug}
             onChange={(e) => setForm({ ...form, fahrzeug: e.target.value })}

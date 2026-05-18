@@ -53,7 +53,10 @@ export default function OrderCard({ order, freigabeCount, onDeleteClick, onStatu
               <XCircle size={15} className="text-zinc-500 shrink-0" />
             )}
             <span className="font-semibold text-zinc-100 truncate">{order.kunden_name}</span>
-            <span className="text-zinc-500 text-sm truncate">{order.fahrzeug}</span>
+            <span className="text-zinc-500 text-sm truncate">
+              {order.fahrzeug}
+              {order.kennzeichen && <span className="ml-1 text-zinc-600">· {order.kennzeichen}</span>}
+            </span>
             {order.ist_wiederholung && !isDeleted && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-orange-950/50 text-orange-300 border-orange-700">
                 <PhoneIncoming size={11} />

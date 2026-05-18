@@ -9,6 +9,8 @@ export interface Order {
   werkstatt_id: string
   kunden_name: string
   kunden_telefonnummer: string
+  kunden_email: string | null
+  kennzeichen: string | null
   fahrzeug: string
   problem_beschreibung: string
   status: OrderStatus
@@ -46,7 +48,7 @@ export interface PublicOrder {
 
 export type NewOrderForm = Pick<
   Order,
-  'kunden_name' | 'kunden_telefonnummer' | 'fahrzeug' | 'problem_beschreibung' | 'status'
+  'kunden_name' | 'kunden_telefonnummer' | 'kunden_email' | 'kennzeichen' | 'fahrzeug' | 'problem_beschreibung' | 'status'
 >
 
 export interface Kommentar {

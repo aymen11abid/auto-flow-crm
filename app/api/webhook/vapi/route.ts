@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 function extractStructuredOutputs(artifact: unknown): Record<string, unknown> {
   if (!artifact || typeof artifact !== 'object') return {}
@@ -24,13 +26,32 @@ function str(val: unknown): string {
   return String(val).trim()
 }
 
-async function isWiederholung(telefonnummer: string): Promise<boolean> {
+function phoneVariants(phone: string): string[] {
+  const clean = phone.replace(/[\s\-\(\)]/g, '')
+  const variants = new Set<string>()
+  variants.add(clean)
+  if (clean.startsWith('+49')) {
+    variants.add('0' + clean.slice(3))
+    variants.add('0049' + clean.slice(3))
+  } else if (clean.startsWith('0049')) {
+    variants.add('+49' + clean.slice(4))
+    variants.add('0' + clean.slice(4))
+  } else if (clean.startsWith('0') && clean.length > 5) {
+    variants.add('+49' + clean.slice(1))
+    variants.add('0049' + clean.slice(1))
+  }
+  return Array.from(variants)
+}
+
+async function isWiederholung(db: ReturnType<typeof getSupabase>, telefonnummer: string, werkstatt_id: string | null): Promise<boolean> {
   if (!telefonnummer) return false
-  const { count } = await supabase
+  let query = db
     .from('auftraege')
     .select('id', { count: 'exact', head: true })
     .eq('kunden_telefonnummer', telefonnummer)
     .is('geloescht_am', null)
+  if (werkstatt_id) query = query.eq('werkstatt_id', werkstatt_id)
+  const { count } = await query
   return (count ?? 0) > 0
 }
 
@@ -52,15 +73,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, ignored: true })
   }
 
+  const db = getSupabase()
+
+  // ── Angerufene Nummer → Werkstatt identifizieren ──────────────────────────
+  const call            = (message.call as Record<string, unknown>) ?? {}
+  const msgPhoneObj     = (message.phoneNumber as Record<string, unknown>) ?? {}
+  const callPhoneObj    = (call.phoneNumber    as Record<string, unknown>) ?? {}
+  const angerufene_nummer = str(msgPhoneObj.number) || str(callPhoneObj.number)
+
+  let werkstatt_id: string | null = null
+  if (angerufene_nummer) {
+    const { data: werkstatt } = await db
+      .from('werkstaetten')
+      .select('id')
+      .in('twilio_nummer', phoneVariants(angerufene_nummer))
+      .single()
+    werkstatt_id = werkstatt?.id ?? null
+    if (!werkstatt_id) {
+      console.warn('[vapi] keine Werkstatt für Nummer:', angerufene_nummer)
+    } else {
+      console.log('[vapi] Werkstatt gefunden:', werkstatt_id)
+    }
+  } else {
+    console.warn('[vapi] keine angerufene Nummer im Payload')
+  }
+
   // ── Strukturierte Outputs ─────────────────────────────────────────────────
   const artifact = message.artifact
   const outputs  = extractStructuredOutputs(artifact)
 
   console.log('[vapi] outputs map:', JSON.stringify(outputs))
 
-  // ── Telefonnummer ─────────────────────────────────────────────────────────
+  // ── Kunden-Telefonnummer ──────────────────────────────────────────────────
   const msgCustomer  = (message.customer as Record<string, unknown>) ?? {}
-  const call         = (message.call     as Record<string, unknown>) ?? {}
   const callCustomer = (call.customer    as Record<string, unknown>) ?? {}
 
   const kunden_telefonnummer =
@@ -94,25 +139,24 @@ export async function POST(request: NextRequest) {
       : 'eskalation_rueckruf'
 
   // ── Rückrufer-Erkennung ───────────────────────────────────────────────────
-  const ist_wiederholung = await isWiederholung(kunden_telefonnummer)
+  const ist_wiederholung = await isWiederholung(db, kunden_telefonnummer, werkstatt_id)
   if (ist_wiederholung) {
     console.log('[vapi] Rückrufer erkannt:', kunden_telefonnummer)
   }
 
   console.log('[vapi] fields to save:', {
+    werkstatt_id,
     kunden_name,
     kunden_telefonnummer,
     fahrzeug,
     problem_beschreibung,
     termin_vereinbart,
-    rueckruf_wunsch,
-    wunschtermin_tag,
-    wunschtermin_zeit,
     status,
     ist_wiederholung,
   })
 
-  const { error } = await supabase.from('auftraege').insert([{
+  const { error } = await db.from('auftraege').insert([{
+    werkstatt_id,
     kunden_name,
     kunden_telefonnummer,
     fahrzeug,
@@ -129,6 +173,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
-  console.log('[vapi] ✓ Auftrag gespeichert, Wiederholung:', ist_wiederholung)
+  console.log('[vapi] ✓ Auftrag gespeichert, werkstatt_id:', werkstatt_id, 'Wiederholung:', ist_wiederholung)
   return NextResponse.json({ success: true, ist_wiederholung })
 }

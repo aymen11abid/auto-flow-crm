@@ -31,6 +31,8 @@ export const STATUS_CONFIG: Record<
 export const EMPTY_ORDER_FORM: NewOrderForm = {
   kunden_name: '',
   kunden_telefonnummer: '',
+  kunden_email: null,
+  kennzeichen: null,
   fahrzeug: '',
   problem_beschreibung: '',
   status: 'neu',

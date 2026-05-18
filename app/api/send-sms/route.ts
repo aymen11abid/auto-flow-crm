@@ -10,6 +10,7 @@ interface Body {
   telefonnummer: string
   freigabe_link: string
   beschreibung: string
+  werkstatt_name?: string
   foto_url?: string
 }
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { telefonnummer, freigabe_link, beschreibung, foto_url: _foto_url } = body
+  const { telefonnummer, freigabe_link, beschreibung, werkstatt_name, foto_url: _foto_url } = body
 
   if (!telefonnummer || !freigabe_link || !beschreibung) {
     return NextResponse.json(
@@ -30,8 +31,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const absender = werkstatt_name ?? 'Ihre Werkstatt'
   const text =
-    `Kfz-Technik Malik: Ihr Mechaniker hat ein Problem gefunden.\n\n` +
+    `${absender}: Ihr Mechaniker hat ein Problem gefunden.\n\n` +
     `"${beschreibung}"\n\n` +
     `Freigabe hier: ${freigabe_link}`
 

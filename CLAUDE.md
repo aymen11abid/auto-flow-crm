@@ -80,6 +80,12 @@ NIE Code schreiben oder Konfiguration ändern ohne vorher den passenden Agent au
 - Vapi SDK im Code verwendet wird
 - Beispiel: "Samir antwortet nicht richtig" / "Webhook bekommt keine Daten"
 
+**ceo** → aufrufen wenn:
+- Nicht klar ist was jetzt Priorität hat
+- Strategische Entscheidung ansteht
+- Gefühl dass zu viel gebaut und zu wenig verkauft wird
+- Beispiel: "Was soll ich diese Woche fokussieren?" / "Ist das jetzt wichtig?"
+
 ### Kombinationen die oft vorkommen:
 - "Baue Ticket #X" → architect zuerst → dann dev
 - "Neuer Kunde" → onboarding + sales zusammen
