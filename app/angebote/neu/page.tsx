@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Trash2, ArrowLeft, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -9,6 +9,14 @@ import type { AngebotPosition } from '@/lib/types'
 const EMPTY_POS: AngebotPosition = { beschreibung: '', betrag: 0, typ: 'arbeit' }
 
 export default function AngebotNeuPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950 flex items-center justify-center"><Loader size={20} className="animate-spin text-zinc-600" /></div>}>
+      <AngebotNeuForm />
+    </Suspense>
+  )
+}
+
+function AngebotNeuForm() {
   const router       = useRouter()
   const params       = useSearchParams()
 
