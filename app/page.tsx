@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall, CalendarDays } from 'lucide-react'
+import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall, CalendarDays, Search } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
 import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [anfragenOpen, setAnfragenOpen]       = useState(false)
   const [freigabenCounts, setFreigabenCounts] = useState<Record<string, FreigabeCount>>({})
   const [eskalationAlert, setEskalationAlert] = useState<Order | null>(null)
+  const [searchQuery, setSearchQuery]         = useState('')
+  const [datumFilter, setDatumFilter]         = useState<'alle' | 'heute' | 'woche' | 'monat'>('alle')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -135,12 +137,40 @@ export default function Dashboard() {
   ).length
 
   const filtered = useMemo(() => {
+    let result: Order[]
     switch (filter) {
-      case 'alle':      return orders.filter((o) => !o.geloescht_am)
-      case 'geloescht': return orders.filter((o) => !!o.geloescht_am)
-      default:          return orders.filter((o) => !o.geloescht_am && o.status === filter)
+      case 'alle':      result = orders.filter((o) => !o.geloescht_am); break
+      case 'geloescht': result = orders.filter((o) => !!o.geloescht_am); break
+      default:          result = orders.filter((o) => !o.geloescht_am && o.status === filter)
     }
-  }, [orders, filter])
+
+    if (datumFilter !== 'alle') {
+      const von = new Date()
+      if (datumFilter === 'heute') {
+        von.setHours(0, 0, 0, 0)
+      } else if (datumFilter === 'woche') {
+        const day = von.getDay()
+        von.setDate(von.getDate() - (day === 0 ? 6 : day - 1))
+        von.setHours(0, 0, 0, 0)
+      } else if (datumFilter === 'monat') {
+        von.setDate(1)
+        von.setHours(0, 0, 0, 0)
+      }
+      result = result.filter((o) => new Date(o.erstellt_am) >= von)
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((o) =>
+        o.kunden_name.toLowerCase().includes(q) ||
+        o.fahrzeug.toLowerCase().includes(q) ||
+        (o.problem_beschreibung ?? '').toLowerCase().includes(q) ||
+        o.kunden_telefonnummer.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [orders, filter, searchQuery, datumFilter])
 
   function countFor(f: FilterValue): number {
     switch (f) {
@@ -290,6 +320,46 @@ export default function Dashboard() {
                 </button>
               )
             })}
+          </div>
+        )}
+
+        {/* Suche + Datum-Filter */}
+        {!loading && orders.length > 0 && (
+          <div className="max-w-5xl mx-auto px-4 pb-3 flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Name, Fahrzeug, Kennzeichen…"
+                className="w-full bg-zinc-800/60 border border-zinc-700 rounded-lg pl-8 pr-7 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1 shrink-0">
+              {(['alle', 'heute', 'woche', 'monat'] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDatumFilter(d)}
+                  className={[
+                    'text-xs px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap',
+                    datumFilter === d
+                      ? 'bg-orange-500 border-orange-400 text-white'
+                      : 'bg-zinc-800/60 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200',
+                  ].join(' ')}
+                >
+                  {d === 'alle' ? 'Alle' : d === 'heute' ? 'Heute' : d === 'woche' ? 'Diese Woche' : 'Dieser Monat'}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </header>
