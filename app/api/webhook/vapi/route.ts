@@ -155,6 +155,30 @@ export async function POST(request: NextRequest) {
     ist_wiederholung,
   })
 
+  // ── Anruf-Lead in anrufe Tabelle speichern (neues Modul) ─────────────────
+  const hatInhalt = kunden_name || fahrzeug || problem_beschreibung
+  if (hatInhalt) {
+    const anrufTyp = !kunden_telefonnummer ? 'eskalation'
+      : termin_vereinbart ? 'termin'
+      : 'eskalation'
+
+    const { error: anrufError } = await db.from('anrufe').insert([{
+      werkstatt_id,
+      kunden_name,
+      kunden_telefon: kunden_telefonnummer,
+      fahrzeug,
+      problem: problem_beschreibung,
+      typ: anrufTyp,
+      status: 'neu',
+    }])
+    if (anrufError) {
+      console.error('[vapi] anrufe insert error:', anrufError.message)
+    } else {
+      console.log('[vapi] ✓ Anruf-Lead gespeichert, typ:', anrufTyp)
+    }
+  }
+
+  // ── Auftrag direkt anlegen (bisheriges Verhalten beibehalten) ─────────────
   const { error } = await db.from('auftraege').insert([{
     werkstatt_id,
     kunden_name,

@@ -8,12 +8,12 @@ import {
   Plus, Trash2, Send, Camera, X, CalendarDays, Ban,
 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
-import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin } from '@/lib/db'
+import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin, createRechnung } from '@/lib/db'
 import TerminPickerModal from '@/components/TerminPickerModal'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import type { Order, Kommentar, Freigabe, OrderStatus } from '@/lib/types'
+import type { Order, Kommentar, Freigabe, OrderStatus, AngebotPosition } from '@/lib/types'
 
 type Position = { beschreibung: string; betrag: string; foto_url?: string | null; uploading?: boolean }
 
@@ -45,6 +45,7 @@ export default function AuftragDetailPage() {
   const [terminSaving, setTerminSaving]       = useState(false)
   const [terminSmsing, setTerminSmsing]       = useState(false)
   const [terminError, setTerminError]         = useState<string | null>(null)
+  const [rechnungSaving, setRechnungSaving]   = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -138,6 +139,32 @@ export default function AuftragDetailPage() {
         body: JSON.stringify({ orderId: order.id, trigger: newStatus }),
       }).catch(() => {})
     }
+  }
+
+  async function handleRechnungErstellen() {
+    if (!order) return
+    setRechnungSaving(true)
+    const positionen: AngebotPosition[] = [
+      { beschreibung: order.problem_beschreibung || 'Reparaturleistung', betrag: 0, typ: 'arbeit' },
+      ...freigaben
+        .filter((f) => f.ergebnis === 'approved' && f.betrag != null)
+        .map((f) => ({ beschreibung: f.beschreibung, betrag: f.betrag!, typ: 'arbeit' as const })),
+    ]
+    const session = await supabase.auth.getSession()
+    const werkstatt_id = session.data.session?.user.user_metadata?.werkstatt_id ?? ''
+    const { rechnung, error } = await createRechnung(werkstatt_id, {
+      auftrag_id: order.id,
+      angebot_id: null,
+      kunden_name: order.kunden_name,
+      kunden_telefon: order.kunden_telefonnummer,
+      fahrzeug: order.fahrzeug,
+      positionen,
+      mwst_prozent: 19,
+      rechnungsnummer: null,
+    })
+    setRechnungSaving(false)
+    if (rechnung) router.push(`/rechnung/${rechnung.id}`)
+    else setError(error ?? 'Fehler beim Erstellen der Rechnung.')
   }
 
   function startEdit() {
@@ -661,6 +688,18 @@ export default function AuftragDetailPage() {
             </button>
           </div>
         </Section>
+
+        {/* Rechnung erstellen */}
+        {order.status === 'abgeschlossen' && (
+          <button
+            onClick={handleRechnungErstellen}
+            disabled={rechnungSaving}
+            className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 border border-zinc-700 text-zinc-200 text-sm font-medium py-3 rounded-xl transition-colors"
+          >
+            {rechnungSaving ? <Loader size={14} className="animate-spin" /> : null}
+            Rechnung erstellen
+          </button>
+        )}
 
         {/* Eskalation warning */}
         {isEskalation && (

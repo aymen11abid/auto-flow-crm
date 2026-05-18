@@ -4,10 +4,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall, CalendarDays, Search } from 'lucide-react'
 import VoxaroLogo from '@/components/VoxaroLogo'
-import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts } from '@/lib/db'
+import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts, fetchAnrufe, markAnrufErledigt } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import type { Order, OrderStatus, StatusAnfrage, FreigabeCount } from '@/lib/types'
+import type { Order, OrderStatus, StatusAnfrage, FreigabeCount, Anruf } from '@/lib/types'
 import OrderCard     from '@/components/OrderCard'
 import OrderForm     from '@/components/OrderForm'
 import DeleteModal   from '@/components/DeleteModal'
@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [eskalationAlert, setEskalationAlert] = useState<Order | null>(null)
   const [searchQuery, setSearchQuery]         = useState('')
   const [datumFilter, setDatumFilter]         = useState<'alle' | 'heute' | 'woche' | 'monat'>('alle')
+  const [anrufe, setAnrufe]                   = useState<Anruf[]>([])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -51,6 +52,7 @@ export default function Dashboard() {
         setAuthChecked(true)
         loadOrders(wid)
         loadStatusAnfragen(wid)
+        loadAnrufe(wid)
       }
     })
   }, [router])
@@ -86,6 +88,16 @@ export default function Dashboard() {
   async function loadStatusAnfragen(wid = werkstattId) {
     const data = await fetchStatusAnfragen(wid)
     setStatusAnfragen(data)
+  }
+
+  async function loadAnrufe(wid = werkstattId) {
+    const data = await fetchAnrufe(wid)
+    setAnrufe(data)
+  }
+
+  async function handleAnrufIgnorieren(id: string) {
+    await markAnrufErledigt(id, 'auftrag_erstellt')
+    setAnrufe((prev) => prev.filter((a) => a.id !== id))
   }
 
   async function handleAnfrageErledigt(id: string) {
@@ -379,6 +391,70 @@ export default function Dashboard() {
             onSuccess={() => { setFormOpen(false); loadOrders() }}
             onCancel={() => setFormOpen(false)}
           />
+        )}
+
+        {/* Anrufe / Leads von Samir */}
+        {anrufe.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <PhoneCall size={13} className="text-orange-400" />
+              Neue Anrufe
+              <span className="text-zinc-600">({anrufe.length})</span>
+            </h2>
+            <ul className="space-y-2">
+              {anrufe.map((anruf) => (
+                <li key={anruf.id} className="bg-zinc-900 border border-orange-500/30 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-zinc-100">
+                        {anruf.kunden_name || 'Unbekannt'}
+                      </span>
+                      {anruf.kunden_telefon && (
+                        <span className="text-xs text-zinc-500">{anruf.kunden_telefon}</span>
+                      )}
+                      <span className={[
+                        'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                        anruf.typ === 'termin'
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'bg-red-500/20 text-red-400',
+                      ].join(' ')}>
+                        {anruf.typ === 'termin' ? 'Terminanfrage' : 'Eskalation'}
+                      </span>
+                    </div>
+                    {anruf.fahrzeug && (
+                      <p className="text-xs text-zinc-400 mt-0.5">{anruf.fahrzeug}</p>
+                    )}
+                    {anruf.problem && (
+                      <p className="text-xs text-zinc-600 mt-0.5 truncate">{anruf.problem}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        const p = new URLSearchParams({
+                          anruf_id: anruf.id,
+                          name: anruf.kunden_name,
+                          telefon: anruf.kunden_telefon,
+                          fahrzeug: anruf.fahrzeug,
+                          problem: anruf.problem,
+                        })
+                        router.push(`/angebote/neu?${p.toString()}`)
+                      }}
+                      className="text-xs bg-orange-500 hover:bg-orange-400 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Angebot erstellen
+                    </button>
+                    <button
+                      onClick={() => handleAnrufIgnorieren(anruf.id)}
+                      className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Ignorieren
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <section>

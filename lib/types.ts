@@ -88,3 +88,59 @@ export interface StatusAnfrage {
   erstellt_am: string
   bearbeitet: boolean
 }
+
+// ── Anrufe (Leads von Samir) ──────────────────────────────────────────────────
+export interface Anruf {
+  id: string
+  werkstatt_id: string | null
+  created_at: string
+  kunden_name: string
+  kunden_telefon: string
+  fahrzeug: string
+  problem: string
+  typ: 'termin' | 'eskalation' | 'status'
+  status: 'neu' | 'angebot_erstellt' | 'auftrag_erstellt'
+}
+
+// ── Angebote ──────────────────────────────────────────────────────────────────
+export interface AngebotPosition {
+  beschreibung: string
+  betrag: number
+  typ: 'teil' | 'arbeit' | 'sonstiges'
+}
+
+export interface Angebot {
+  id: string
+  werkstatt_id: string
+  anruf_id: string | null
+  token: string
+  kunden_name: string
+  kunden_telefon: string
+  fahrzeug: string
+  notiz: string | null
+  positionen: AngebotPosition[]
+  gesamt: number
+  mwst_prozent: number
+  status: 'entwurf' | 'gesendet' | 'genehmigt' | 'abgelehnt'
+  created_at: string
+  entschieden_am: string | null
+}
+
+// ── Rechnungen ────────────────────────────────────────────────────────────────
+export interface Rechnung {
+  id: string
+  werkstatt_id: string
+  auftrag_id: string | null
+  angebot_id: string | null
+  rechnungsnummer: string | null
+  kunden_name: string
+  kunden_telefon: string
+  fahrzeug: string
+  positionen: AngebotPosition[]
+  netto: number
+  mwst_betrag: number
+  gesamt: number
+  mwst_prozent: number
+  status: 'entwurf' | 'gesendet' | 'bezahlt'
+  created_at: string
+}

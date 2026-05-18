@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe, PublicOrder, FreigabeCount } from './types'
+import type { Order, NewOrderForm, Kommentar, StatusAnfrage, Freigabe, PublicOrder, FreigabeCount, Anruf, Angebot, AngebotPosition, Rechnung } from './types'
 
 function sortOrders(orders: Order[]): Order[] {
   return [
@@ -272,6 +272,144 @@ export async function saveTermin(
     .eq('id', id)
   return error?.message ?? null
 }
+
+// ── Anrufe (Leads) ────────────────────────────────────────────────────────────
+
+export async function fetchAnrufe(werkstatt_id: string): Promise<Anruf[]> {
+  const { data } = await supabase
+    .from('anrufe')
+    .select('*')
+    .eq('werkstatt_id', werkstatt_id)
+    .eq('status', 'neu')
+    .order('created_at', { ascending: false })
+  return (data ?? []) as Anruf[]
+}
+
+export async function markAnrufErledigt(
+  id: string,
+  status: 'angebot_erstellt' | 'auftrag_erstellt'
+): Promise<string | null> {
+  const { error } = await supabase.from('anrufe').update({ status }).eq('id', id)
+  return error?.message ?? null
+}
+
+// ── Angebote ──────────────────────────────────────────────────────────────────
+
+export async function fetchAngebote(werkstatt_id: string): Promise<Angebot[]> {
+  const { data } = await supabase
+    .from('angebote')
+    .select('*')
+    .eq('werkstatt_id', werkstatt_id)
+    .order('created_at', { ascending: false })
+  return (data ?? []) as Angebot[]
+}
+
+export async function fetchAngebotByToken(
+  token: string
+): Promise<{ angebot: Angebot | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('angebote')
+    .select('*')
+    .eq('token', token)
+    .single()
+  if (error) return { angebot: null, error: error.message }
+  return { angebot: data as Angebot, error: null }
+}
+
+export async function createAngebot(
+  werkstatt_id: string,
+  data: {
+    anruf_id: string | null
+    kunden_name: string
+    kunden_telefon: string
+    fahrzeug: string
+    notiz: string | null
+    positionen: AngebotPosition[]
+    mwst_prozent: number
+  }
+): Promise<{ angebot: Angebot | null; error: string | null }> {
+  const token = crypto.randomUUID().replace(/-/g, '').slice(0, 24)
+  const netto = data.positionen.reduce((s, p) => s + p.betrag, 0)
+  const gesamt = netto * (1 + data.mwst_prozent / 100)
+
+  const { data: row, error } = await supabase
+    .from('angebote')
+    .insert([{ ...data, werkstatt_id, token, gesamt: Math.round(gesamt * 100) / 100 }])
+    .select()
+    .single()
+  if (error) return { angebot: null, error: error.message }
+  return { angebot: row as Angebot, error: null }
+}
+
+export async function resolveAngebot(
+  token: string,
+  ergebnis: 'genehmigt' | 'abgelehnt'
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('angebote')
+    .update({ status: ergebnis, entschieden_am: new Date().toISOString() })
+    .eq('token', token)
+  return error?.message ?? null
+}
+
+// ── Rechnungen ────────────────────────────────────────────────────────────────
+
+export async function fetchRechnungen(werkstatt_id: string): Promise<Rechnung[]> {
+  const { data } = await supabase
+    .from('rechnungen')
+    .select('*')
+    .eq('werkstatt_id', werkstatt_id)
+    .order('created_at', { ascending: false })
+  return (data ?? []) as Rechnung[]
+}
+
+export async function fetchRechnungById(
+  id: string
+): Promise<{ rechnung: Rechnung | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('rechnungen')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return { rechnung: null, error: error.message }
+  return { rechnung: data as Rechnung, error: null }
+}
+
+export async function createRechnung(
+  werkstatt_id: string,
+  data: {
+    auftrag_id: string | null
+    angebot_id: string | null
+    kunden_name: string
+    kunden_telefon: string
+    fahrzeug: string
+    positionen: AngebotPosition[]
+    mwst_prozent: number
+    rechnungsnummer: string | null
+  }
+): Promise<{ rechnung: Rechnung | null; error: string | null }> {
+  const netto = Math.round(data.positionen.reduce((s, p) => s + p.betrag, 0) * 100) / 100
+  const mwst_betrag = Math.round(netto * (data.mwst_prozent / 100) * 100) / 100
+  const gesamt = Math.round((netto + mwst_betrag) * 100) / 100
+
+  const { data: row, error } = await supabase
+    .from('rechnungen')
+    .insert([{ ...data, werkstatt_id, netto, mwst_betrag, gesamt }])
+    .select()
+    .single()
+  if (error) return { rechnung: null, error: error.message }
+  return { rechnung: row as Rechnung, error: null }
+}
+
+export async function updateRechnungStatus(
+  id: string,
+  status: 'entwurf' | 'gesendet' | 'bezahlt'
+): Promise<string | null> {
+  const { error } = await supabase.from('rechnungen').update({ status }).eq('id', id)
+  return error?.message ?? null
+}
+
+// ── Termine ───────────────────────────────────────────────────────────────────
 
 export async function fetchTermine(
   werkstatt_id: string,
