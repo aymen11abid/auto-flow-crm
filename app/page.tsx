@@ -164,6 +164,7 @@ export default function Dashboard() {
       result = result.filter((o) =>
         o.kunden_name.toLowerCase().includes(q) ||
         o.fahrzeug.toLowerCase().includes(q) ||
+        (o.kennzeichen ?? '').toLowerCase().includes(q) ||
         (o.problem_beschreibung ?? '').toLowerCase().includes(q) ||
         o.kunden_telefonnummer.toLowerCase().includes(q)
       )

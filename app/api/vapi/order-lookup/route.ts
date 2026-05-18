@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       .from('auftraege')
       .select('id, status, fahrzeug, kunden_name, freigabe_token, kunden_telefonnummer')
       .eq('werkstatt_id', werkstatt_id)
-      .ilike('fahrzeug', `%${kennzeichen}%`)
+      .or(`fahrzeug.ilike.%${kennzeichen}%,kennzeichen.ilike.%${kennzeichen}%`)
       .is('geloescht_am', null)
       .order('erstellt_am', { ascending: false })
       .limit(1)
