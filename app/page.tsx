@@ -289,11 +289,17 @@ export default function Dashboard() {
             >
               <LogOut size={16} />
             </button>
+            <button onClick={() => router.push('/angebote/neu')}
+              className="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+              Angebot
+            </button>
             <button onClick={() => setFormOpen((v) => !v)}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               <Plus size={16} />
-              Neuer Auftrag
+              Auftrag
             </button>
           </div>
         </div>
