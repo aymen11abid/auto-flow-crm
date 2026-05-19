@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, RefreshCw, AlertTriangle, Loader, LogOut, Bell, X, PhoneCall, CalendarDays, Search } from 'lucide-react'
-import VoxaroLogo from '@/components/VoxaroLogo'
+import { Plus, RefreshCw, AlertTriangle, Loader, Bell, X, PhoneCall, Search } from 'lucide-react'
+import DashboardNav from '@/components/DashboardNav'
 import { fetchOrders, softDeleteOrder, updateOrderStatus, fetchStatusAnfragen, markStatusAnfrageErledigt, fetchFreigabenCounts, fetchAnrufe, markAnrufErledigt } from '@/lib/db'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
@@ -105,11 +105,6 @@ export default function Dashboard() {
     setStatusAnfragen((prev) => prev.filter((a) => a.id !== id))
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.replace('/login')
-  }
-
   async function handleDelete(reason: string) {
     if (!deleteTarget) return
     const err = await softDeleteOrder(deleteTarget.id, reason || null)
@@ -201,6 +196,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
 
+      <DashboardNav />
+
       {deleteTarget && (
         <DeleteModal
           order={deleteTarget}
@@ -210,10 +207,9 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-14 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <VoxaroLogo size="sm" />
             {escalationCount > 0 && (
               <span className="flex items-center gap-1 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
                 <AlertTriangle size={11} />
@@ -271,23 +267,11 @@ export default function Dashboard() {
               )}
             </div>
 
-            <button onClick={() => router.push('/kalender')}
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-              title="Kalender"
-            >
-              <CalendarDays size={16} />
-            </button>
             <button onClick={() => loadOrders()}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
               title="Neu laden"
             >
               <RefreshCw size={16} />
-            </button>
-            <button onClick={handleLogout}
-              className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
-              title="Abmelden"
-            >
-              <LogOut size={16} />
             </button>
             <button onClick={() => router.push('/angebote/neu')}
               className="flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-sm font-medium px-4 py-2 rounded-lg transition-colors"

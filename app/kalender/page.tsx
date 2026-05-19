@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchTermine } from '@/lib/db'
 import { getGermanHolidays, holidayKey, addWorkingDays } from '@/lib/feiertage'
-import VoxaroLogo from '@/components/VoxaroLogo'
+import DashboardNav from '@/components/DashboardNav'
 import type { Order } from '@/lib/types'
 
 const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -115,15 +115,10 @@ export default function KalenderPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
-      <header className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.push('/')}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <VoxaroLogo size="sm" />
-        <span className="text-base font-semibold ml-1">
+      <DashboardNav />
+
+      <header className="sticky top-14 z-10 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
+        <span className="text-sm font-semibold text-zinc-100">
           {MONATE[month]} {year}
         </span>
         <div className="ml-auto flex items-center gap-1">
