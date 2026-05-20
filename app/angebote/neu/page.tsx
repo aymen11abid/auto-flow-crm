@@ -98,7 +98,7 @@ function AngebotNeuForm() {
       return
     }
 
-    router.push('/')
+    router.push('/angebote')
   }
 
   const netto  = positionen.reduce((s, p) => s + (p.betrag || 0), 0)
