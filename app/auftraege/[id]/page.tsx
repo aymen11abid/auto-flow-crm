@@ -52,7 +52,7 @@ export default function AuftragDetailPage() {
       if (!session) { router.replace('/login'); return }
       Promise.all([fetchOrderById(id), fetchKommentare(id), fetchFreigabenByAuftrag(id)]).then(
         ([{ order, error }, kommentare, freigaben]) => {
-          if (error || !order) { router.replace('/'); return }
+          if (error || !order) { router.replace('/dashboard'); return }
           setOrder(order)
           setKommentare(kommentare)
           setFreigaben(freigaben)

@@ -112,7 +112,7 @@ export default function AgentPage() {
       {/* Header */}
       <header className="border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
         <Link
-          href="/"
+          href="/dashboard"
           className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded-md hover:bg-zinc-800"
         >
           <ChevronLeft size={18} />
