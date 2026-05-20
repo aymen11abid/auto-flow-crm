@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Receipt, Loader, RefreshCw, CheckCircle, Send, FileText } from 'lucide-react'
+import { Receipt, Loader, RefreshCw, CheckCircle, Send, FileText, Search, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchRechnungen, updateRechnungStatus } from '@/lib/db'
 import DashboardNav from '@/components/DashboardNav'
@@ -20,6 +20,7 @@ export default function RechnungenPage() {
   const [loading, setLoading]         = useState(true)
   const [werkstattId, setWerkstattId] = useState('')
   const [filter, setFilter]           = useState<'alle' | Rechnung['status']>('alle')
+  const [suche, setSuche]             = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,7 +43,11 @@ export default function RechnungenPage() {
     setRechnungen((prev) => prev.map((r) => r.id === id ? { ...r, status } : r))
   }
 
-  const filtered = filter === 'alle' ? rechnungen : rechnungen.filter((r) => r.status === filter)
+  const q = suche.toLowerCase().trim()
+  const filtered = rechnungen
+    .filter((r) => filter === 'alle' || r.status === filter)
+    .filter((r) => !q || [r.kunden_name, r.fahrzeug, r.kunden_telefon, r.rechnungsnummer ?? '']
+      .some((f) => f.toLowerCase().includes(q)))
 
   const totalOffen = rechnungen
     .filter((r) => r.status !== 'bezahlt')
@@ -61,15 +66,33 @@ export default function RechnungenPage() {
           </div>
           <div className="flex items-center gap-2">
             {!loading && totalOffen > 0 && (
-              <span className="text-xs text-orange-400 font-medium">
-                {totalOffen.toFixed(2)} € offen
-              </span>
+              <span className="text-xs text-orange-400 font-medium">{totalOffen.toFixed(2)} € offen</span>
             )}
-            <button onClick={() => load()} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => load(werkstattId)} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
               <RefreshCw size={15} />
             </button>
           </div>
         </div>
+
+        {/* Suche */}
+        {!loading && rechnungen.length > 0 && (
+          <div className="max-w-5xl mx-auto px-4 pb-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <input
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+                placeholder="Name, Fahrzeug, Telefon, Rechnungsnr. …"
+                className="w-full bg-zinc-800/60 border border-zinc-700 rounded-lg pl-8 pr-8 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+              />
+              {suche && (
+                <button onClick={() => setSuche('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filter tabs */}
         {!loading && rechnungen.length > 0 && (
@@ -107,8 +130,10 @@ export default function RechnungenPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <Receipt size={32} className="text-zinc-800 mx-auto" />
-            <p className="text-zinc-600 text-sm">Keine Rechnungen vorhanden.</p>
-            <p className="text-zinc-700 text-xs">Rechnungen werden aus abgeschlossenen Aufträgen erstellt.</p>
+            <p className="text-zinc-600 text-sm">
+              {suche ? `Keine Rechnungen für "${suche}" gefunden.` : 'Keine Rechnungen vorhanden.'}
+            </p>
+            {!suche && <p className="text-zinc-700 text-xs">Rechnungen werden aus Aufträgen erstellt.</p>}
           </div>
         ) : (
           <ul className="space-y-3">
@@ -129,7 +154,7 @@ export default function RechnungenPage() {
                           {cfg.label}
                         </span>
                         {rechnung.rechnungsnummer && (
-                          <span className="text-[10px] text-zinc-600">{rechnung.rechnungsnummer}</span>
+                          <span className="text-[10px] text-zinc-600 font-mono">{rechnung.rechnungsnummer}</span>
                         )}
                       </div>
                       <p className="text-xs text-zinc-400 mt-0.5">{rechnung.fahrzeug}</p>
@@ -145,7 +170,6 @@ export default function RechnungenPage() {
                     </div>
                   </div>
 
-                  {/* Status-Aktionen */}
                   {rechnung.status !== 'bezahlt' && (
                     <div className="mt-3 pt-3 border-t border-zinc-800 flex gap-2" onClick={(e) => e.stopPropagation()}>
                       {rechnung.status === 'entwurf' && (
