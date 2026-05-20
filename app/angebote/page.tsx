@@ -141,8 +141,8 @@ export default function AngebotePage() {
                     </div>
                   </div>
 
-                  {/* Genehmigt → Zu Auftrag machen */}
-                  {angebot.status === 'genehmigt' && (
+                  {/* Zu Auftrag machen */}
+                  {angebot.status !== 'abgelehnt' && (
                     <div className="mt-3 pt-3 border-t border-zinc-800" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => {

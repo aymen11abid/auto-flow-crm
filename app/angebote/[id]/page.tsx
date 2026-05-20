@@ -371,17 +371,20 @@ export default function AngebotDetailPage() {
               Senden (SMS)
             </button>
           )}
-          {angebot.status === 'genehmigt' && (
-            <button
-              onClick={() => {
-                const p = new URLSearchParams({ name: angebot.kunden_name, telefon: angebot.kunden_telefon, fahrzeug: angebot.fahrzeug, problem: angebot.notiz ?? '' })
-                router.push(`/?neuer_auftrag=1&${p.toString()}`)
-              }}
-              className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium py-3 rounded-xl transition-colors"
-            >
-              Zu Auftrag machen →
-            </button>
-          )}
+          <button
+            onClick={() => {
+              const p = new URLSearchParams({
+                name:     angebot.kunden_name,
+                telefon:  angebot.kunden_telefon,
+                fahrzeug: angebot.fahrzeug,
+                problem:  angebot.notiz ?? '',
+              })
+              router.push(`/?neuer_auftrag=1&${p.toString()}`)
+            }}
+            className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium py-3 rounded-xl transition-colors"
+          >
+            Zu Auftrag machen →
+          </button>
         </div>
 
       </main>
