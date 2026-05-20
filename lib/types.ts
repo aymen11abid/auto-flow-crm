@@ -7,12 +7,16 @@ export type OrderStatus =
 export interface Order {
   id: string
   werkstatt_id: string
+  auftragsnummer: string | null
   kunden_name: string
   kunden_telefonnummer: string
   kunden_email: string | null
   kennzeichen: string | null
   fahrzeug: string
+  fin: string | null
+  km_stand: number | null
   problem_beschreibung: string
+  kostenschaetzung: number | null
   status: OrderStatus
   foto_url: string | null
   erstellt_am: string

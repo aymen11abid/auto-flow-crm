@@ -5,14 +5,14 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Phone, Mail, AlertTriangle, Loader,
   CheckCircle2, XCircle, Clock, Sun, Sunset, MessageSquare, Pencil,
-  Plus, Trash2, Send, Camera, X, CalendarDays, Ban,
+  Plus, Trash2, Send, Camera, X, CalendarDays, Ban, Printer, Receipt,
 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { fetchOrderById, fetchKommentare, createKommentar, updateOrderFields, fetchFreigabenByAuftrag, updateOrderStatus, saveTermin, createRechnung } from '@/lib/db'
 import TerminPickerModal from '@/components/TerminPickerModal'
 import { STATUS_CONFIG } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import VoxaroLogo from '@/components/VoxaroLogo'
+import DashboardNav from '@/components/DashboardNav'
 import type { Order, Kommentar, Freigabe, OrderStatus, AngebotPosition } from '@/lib/types'
 
 type Position = { beschreibung: string; betrag: string; foto_url?: string | null; uploading?: boolean }
@@ -30,7 +30,7 @@ export default function AuftragDetailPage() {
   const [error, setError]           = useState<string | null>(null)
   const textareaRef                 = useRef<HTMLTextAreaElement>(null)
   const [editing, setEditing]       = useState(false)
-  const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '', kennzeichen: null as string | null, kunden_email: null as string | null })
+  const [editForm, setEditForm]     = useState({ kunden_telefonnummer: '', fahrzeug: '', problem_beschreibung: '', kennzeichen: null as string | null, kunden_email: null as string | null, fin: null as string | null, km_stand: null as number | null, kostenschaetzung: null as number | null })
   const [savingEdit, setSavingEdit] = useState(false)
   const [freigaben, setFreigaben]   = useState<Freigabe[]>([])
   const [showModal, setShowModal]   = useState(false)
@@ -175,6 +175,9 @@ export default function AuftragDetailPage() {
       problem_beschreibung: order.problem_beschreibung,
       kennzeichen:          order.kennzeichen,
       kunden_email:         order.kunden_email,
+      fin:                  order.fin,
+      km_stand:             order.km_stand,
+      kostenschaetzung:     order.kostenschaetzung,
     })
     setEditing(true)
   }
@@ -284,16 +287,26 @@ export default function AuftragDetailPage() {
     )}
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
 
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
+      <DashboardNav />
+
+      {/* Sub-Header */}
+      <header className="sticky top-14 z-10 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.back()}
           className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={18} />
         </button>
-        <VoxaroLogo size="sm" />
-        <div className="ml-auto">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-zinc-100 truncate">{order.kunden_name}</p>
+          {order.auftragsnummer && (
+            <p className="text-xs text-zinc-600">{order.auftragsnummer}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => window.print()} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors" title="Drucken">
+            <Printer size={15} />
+          </button>
           {editing ? (
             <div className="flex gap-2">
               <button onClick={() => setEditing(false)} className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors">
@@ -333,6 +346,9 @@ export default function AuftragDetailPage() {
                 </option>
               ))}
             </select>
+            {order.auftragsnummer && (
+              <span className="text-xs text-zinc-500 font-mono">{order.auftragsnummer}</span>
+            )}
             {order.ist_wiederholung && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium bg-orange-950/50 text-orange-300 border-orange-700">
                 Rückrufer
@@ -343,7 +359,13 @@ export default function AuftragDetailPage() {
           <p className="text-zinc-400 text-sm mt-0.5">
             {order.fahrzeug}
             {order.kennzeichen && <span className="ml-2 text-zinc-500">· {order.kennzeichen}</span>}
+            {order.km_stand && <span className="ml-2 text-zinc-600">· {order.km_stand.toLocaleString('de-DE')} km</span>}
           </p>
+          {order.kostenschaetzung != null && (
+            <p className="text-xs text-orange-400 mt-1 font-medium">
+              Kostenschätzung: ca. {order.kostenschaetzung.toFixed(2)} €
+            </p>
+          )}
           <p className="text-xs text-zinc-600 mt-2">
             {new Date(order.erstellt_am).toLocaleString('de-DE', {
               day: '2-digit', month: '2-digit', year: 'numeric',
@@ -399,22 +421,50 @@ export default function AuftragDetailPage() {
 
         {/* Fahrzeug */}
         {editing && (
-          <Section title="Fahrzeug">
+          <Section title="Fahrzeug & Auftrag">
             <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={editForm.kennzeichen ?? ''}
-                onChange={(e) => setEditForm({ ...editForm, kennzeichen: e.target.value || null })}
-                placeholder="Kennzeichen (optional)"
-                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
-              />
               <input
                 type="text"
                 value={editForm.fahrzeug}
                 onChange={(e) => setEditForm({ ...editForm, fahrzeug: e.target.value })}
-                placeholder="Fahrzeug"
+                placeholder="Fahrzeug (z.B. VW Golf, Bj. 2019)"
                 className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
               />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={editForm.kennzeichen ?? ''}
+                  onChange={(e) => setEditForm({ ...editForm, kennzeichen: e.target.value || null })}
+                  placeholder="Kennzeichen (optional)"
+                  className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+                />
+                <input
+                  type="number"
+                  value={editForm.km_stand ?? ''}
+                  onChange={(e) => setEditForm({ ...editForm, km_stand: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="KM-Stand"
+                  className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none"
+                />
+              </div>
+              <input
+                type="text"
+                value={editForm.fin ?? ''}
+                onChange={(e) => setEditForm({ ...editForm, fin: e.target.value || null })}
+                placeholder="FIN / Fahrgestellnummer (optional)"
+                className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none font-mono"
+              />
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editForm.kostenschaetzung ?? ''}
+                  onChange={(e) => setEditForm({ ...editForm, kostenschaetzung: e.target.value ? parseFloat(e.target.value) : null })}
+                  placeholder="Kostenschätzung (€) – Pflicht nach BGB §650"
+                  className="w-full bg-zinc-800 border border-zinc-700 focus:border-orange-500 rounded-xl px-4 py-2.5 pr-8 text-sm text-zinc-100 outline-none"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">€</span>
+              </div>
             </div>
           </Section>
         )}
@@ -690,16 +740,14 @@ export default function AuftragDetailPage() {
         </Section>
 
         {/* Rechnung erstellen */}
-        {order.status === 'abgeschlossen' && (
-          <button
-            onClick={handleRechnungErstellen}
-            disabled={rechnungSaving}
-            className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 border border-zinc-700 text-zinc-200 text-sm font-medium py-3 rounded-xl transition-colors"
-          >
-            {rechnungSaving ? <Loader size={14} className="animate-spin" /> : null}
-            Rechnung erstellen
-          </button>
-        )}
+        <button
+          onClick={handleRechnungErstellen}
+          disabled={rechnungSaving}
+          className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 border border-zinc-700 text-zinc-200 text-sm font-medium py-3 rounded-xl transition-colors"
+        >
+          {rechnungSaving ? <Loader size={14} className="animate-spin" /> : <Receipt size={14} />}
+          Rechnung erstellen
+        </button>
 
         {/* Eskalation warning */}
         {isEskalation && (
