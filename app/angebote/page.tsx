@@ -52,7 +52,7 @@ export default function AngebotePage() {
             {!loading && <span className="text-xs text-zinc-600">({filtered.length})</span>}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => load()} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => load(werkstattId)} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
               <RefreshCw size={15} />
             </button>
             <button

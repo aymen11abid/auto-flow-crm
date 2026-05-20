@@ -69,6 +69,10 @@ function AngebotNeuForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!werkstattId) {
+      setError('Sitzung wird noch geladen – bitte kurz warten und erneut versuchen.')
+      return
+    }
     if (!name || !fahrzeug || positionen.some((p) => !p.beschreibung)) {
       setError('Name, Fahrzeug und alle Positionen müssen ausgefüllt sein.')
       return

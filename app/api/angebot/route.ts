@@ -45,11 +45,15 @@ export async function POST(req: NextRequest) {
     const link   = `${appUrl}/angebot/${token}`
     const smsText = `Ihr Angebot von der Werkstatt liegt vor. Hier ansehen und genehmigen: ${link}`
 
-    await fetch(`${appUrl}/api/send-sms`, {
+    const smsOk = await fetch(`${appUrl}/api/send-sms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: kunden_telefon, message: smsText }),
-    }).catch(() => {})
+    }).then((r) => r.ok).catch(() => false)
+
+    if (!smsOk) {
+      await db.from('angebote').update({ status: 'entwurf' }).eq('id', angebot.id)
+    }
   }
 
   return NextResponse.json({ angebot })
