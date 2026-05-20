@@ -24,7 +24,7 @@ export default function LoginPage() {
       setError('E-Mail oder Passwort falsch.')
       setLoading(false)
     } else {
-      router.replace('/dashboard')
+      router.replace('/')
     }
   }
 

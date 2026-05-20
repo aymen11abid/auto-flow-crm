@@ -8,13 +8,13 @@ import VoxaroLogo from './VoxaroLogo'
 const NAV = [
   { href: '/leads',      label: 'Leads',       icon: PhoneCall },
   { href: '/angebote',   label: 'Angebote',    icon: FileText },
-  { href: '/dashboard',  label: 'Aufträge',    icon: Wrench },
+  { href: '/',           label: 'Aufträge',    icon: Wrench },
   { href: '/kalender',   label: 'Kalender',    icon: CalendarDays },
   { href: '/rechnungen', label: 'Rechnungen',  icon: Receipt },
 ]
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/dashboard') return pathname === '/dashboard'
+  if (href === '/') return pathname === '/'
   if (href === '/angebote') return pathname === '/angebote' || pathname.startsWith('/angebote/')
   return pathname.startsWith(href)
 }
