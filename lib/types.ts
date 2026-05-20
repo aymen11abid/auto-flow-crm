@@ -114,6 +114,7 @@ export interface Angebot {
   werkstatt_id: string
   anruf_id: string | null
   token: string
+  angebotsnummer: string | null
   kunden_name: string
   kunden_telefon: string
   fahrzeug: string
@@ -121,6 +122,9 @@ export interface Angebot {
   positionen: AngebotPosition[]
   gesamt: number
   mwst_prozent: number
+  rabatt_typ: 'prozent' | 'betrag' | null
+  rabatt_wert: number
+  gueltig_bis: string | null
   status: 'entwurf' | 'gesendet' | 'genehmigt' | 'abgelehnt'
   created_at: string
   entschieden_am: string | null

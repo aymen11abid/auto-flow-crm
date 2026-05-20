@@ -73,8 +73,12 @@ function AngebotNeuForm() {
       setError('Sitzung wird noch geladen – bitte kurz warten und erneut versuchen.')
       return
     }
-    if (!name || !fahrzeug || positionen.some((p) => !p.beschreibung)) {
-      setError('Name, Fahrzeug und alle Positionen müssen ausgefüllt sein.')
+    if (!name || !fahrzeug) {
+      setError('Name und Fahrzeug sind Pflichtfelder.')
+      return
+    }
+    if (positionen.some((p) => !p.beschreibung)) {
+      setError('Alle Positionen müssen eine Beschreibung haben.')
       return
     }
     setSaving(true)
@@ -261,7 +265,7 @@ function AngebotNeuForm() {
             <button type="submit" disabled={saving}
               className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-sm font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              {saving ? <><Loader size={14} className="animate-spin" /> Wird gespeichert…</> : 'Angebot erstellen + SMS senden'}
+              {saving ? <><Loader size={14} className="animate-spin" /> Wird gespeichert…</> : positionen.length === 0 ? 'Als Entwurf speichern' : 'Angebot erstellen'}
             </button>
           </div>
 

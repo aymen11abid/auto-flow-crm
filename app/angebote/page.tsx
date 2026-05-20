@@ -115,7 +115,7 @@ export default function AngebotePage() {
             {filtered.map((angebot) => {
               const cfg = STATUS_CFG[angebot.status]
               return (
-                <li key={angebot.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors">
+                <li key={angebot.id} onClick={() => router.push(`/angebote/${angebot.id}`)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors cursor-pointer">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -143,7 +143,7 @@ export default function AngebotePage() {
 
                   {/* Genehmigt → Zu Auftrag machen */}
                   {angebot.status === 'genehmigt' && (
-                    <div className="mt-3 pt-3 border-t border-zinc-800">
+                    <div className="mt-3 pt-3 border-t border-zinc-800" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => {
                           const p = new URLSearchParams({

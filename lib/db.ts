@@ -341,6 +341,37 @@ export async function createAngebot(
   return { angebot: row as Angebot, error: null }
 }
 
+export async function fetchAngebotById(
+  id: string
+): Promise<{ angebot: Angebot | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('angebote')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return { angebot: null, error: error.message }
+  return { angebot: data as Angebot, error: null }
+}
+
+export async function updateAngebot(
+  id: string,
+  data: {
+    kunden_name: string
+    kunden_telefon: string
+    fahrzeug: string
+    notiz: string | null
+    positionen: AngebotPosition[]
+    mwst_prozent: number
+    rabatt_typ: 'prozent' | 'betrag' | null
+    rabatt_wert: number
+    gueltig_bis: string | null
+    gesamt: number
+  }
+): Promise<string | null> {
+  const { error } = await supabase.from('angebote').update(data).eq('id', id)
+  return error?.message ?? null
+}
+
 export async function resolveAngebot(
   token: string,
   ergebnis: 'genehmigt' | 'abgelehnt'
