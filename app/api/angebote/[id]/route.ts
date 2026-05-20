@@ -42,9 +42,6 @@ export async function PUT(
   const { data: existing, error: fetchErr } = await db
     .from('angebote').select('status').eq('id', id).single()
   if (fetchErr || !existing) return NextResponse.json({ error: 'Angebot nicht gefunden.' }, { status: 404 })
-  if (existing.status !== 'entwurf') {
-    return NextResponse.json({ error: 'Nur Entwürfe können bearbeitet werden.' }, { status: 409 })
-  }
 
   const { gesamt } = berechneGesamt(
     positionen ?? [],

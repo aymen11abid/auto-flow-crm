@@ -130,7 +130,7 @@ export default function AngebotDetailPage() {
   )
   if (!angebot) return null
 
-  const editable = angebot.status === 'entwurf'
+  const editable = true
   const cfg      = STATUS_CFG[angebot.status]
   const { zwischen, rabAbs, netto, mwstBet, gesamt } = kalkuliert()
 
@@ -351,37 +351,38 @@ export default function AngebotDetailPage() {
         )}
 
         {/* Aktionen */}
-        {editable ? (
-          <div className="flex gap-3">
-            <button
-              onClick={handleSpeichern}
-              disabled={saving || sending}
-              className="flex-1 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-sm font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              {saving ? <Loader size={14} className="animate-spin" /> : null}
-              Entwurf speichern
-            </button>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={handleSpeichern}
+            disabled={saving || sending}
+            className="flex-1 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-sm font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader size={14} className="animate-spin" /> : null}
+            Speichern
+          </button>
+          {angebot.status === 'entwurf' && (
             <button
               onClick={handleSenden}
               disabled={saving || sending || !telefon}
               className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-sm font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-              title={!telefon ? 'Telefonnummer erforderlich' : undefined}
+              title={!telefon ? 'Telefonnummer erforderlich für SMS-Versand' : undefined}
             >
               {sending ? <Loader size={14} className="animate-spin" /> : <Send size={14} />}
-              Angebot senden
+              Senden (SMS)
             </button>
-          </div>
-        ) : angebot.status === 'genehmigt' ? (
-          <button
-            onClick={() => {
-              const p = new URLSearchParams({ name: angebot.kunden_name, telefon: angebot.kunden_telefon, fahrzeug: angebot.fahrzeug, problem: angebot.notiz ?? '' })
-              router.push(`/?neuer_auftrag=1&${p.toString()}`)
-            }}
-            className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-medium py-3 rounded-xl transition-colors"
-          >
-            Zu Auftrag machen →
-          </button>
-        ) : null}
+          )}
+          {angebot.status === 'genehmigt' && (
+            <button
+              onClick={() => {
+                const p = new URLSearchParams({ name: angebot.kunden_name, telefon: angebot.kunden_telefon, fahrzeug: angebot.fahrzeug, problem: angebot.notiz ?? '' })
+                router.push(`/?neuer_auftrag=1&${p.toString()}`)
+              }}
+              className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium py-3 rounded-xl transition-colors"
+            >
+              Zu Auftrag machen →
+            </button>
+          )}
+        </div>
 
       </main>
     </div>
