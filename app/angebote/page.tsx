@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Plus, Loader, RefreshCw, CheckCircle, XCircle, Clock, Send } from 'lucide-react'
+import { FileText, Plus, Loader, RefreshCw, CheckCircle, XCircle, Clock, Send, Search, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchAngebote } from '@/lib/db'
 import DashboardNav from '@/components/DashboardNav'
@@ -21,6 +21,7 @@ export default function AngebotePage() {
   const [loading, setLoading]         = useState(true)
   const [werkstattId, setWerkstattId] = useState('')
   const [filter, setFilter]           = useState<'alle' | Angebot['status']>('alle')
+  const [suche, setSuche]             = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,7 +39,11 @@ export default function AngebotePage() {
     setLoading(false)
   }
 
-  const filtered = filter === 'alle' ? angebote : angebote.filter((a) => a.status === filter)
+  const q = suche.toLowerCase().trim()
+  const filtered = angebote
+    .filter((a) => filter === 'alle' || a.status === filter)
+    .filter((a) => !q || [a.kunden_name, a.fahrzeug, a.kunden_telefon, a.notiz ?? '', a.angebotsnummer ?? '']
+      .some((f) => f.toLowerCase().includes(q)))
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -64,6 +69,26 @@ export default function AngebotePage() {
             </button>
           </div>
         </div>
+
+        {/* Suche */}
+        {!loading && angebote.length > 0 && (
+          <div className="max-w-5xl mx-auto px-4 pb-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <input
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+                placeholder="Name, Fahrzeug, Telefon, Angebotsnr. …"
+                className="w-full bg-zinc-800/60 border border-zinc-700 rounded-lg pl-8 pr-8 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+              />
+              {suche && (
+                <button onClick={() => setSuche('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filter tabs */}
         {!loading && angebote.length > 0 && (
@@ -101,14 +126,18 @@ export default function AngebotePage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <FileText size={32} className="text-zinc-800 mx-auto" />
-            <p className="text-zinc-600 text-sm">Keine Angebote vorhanden.</p>
-            <button
-              onClick={() => router.push('/angebote/neu')}
-              className="inline-flex items-center gap-1.5 text-xs bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus size={12} />
-              Erstes Angebot erstellen
-            </button>
+            <p className="text-zinc-600 text-sm">
+              {suche ? `Keine Angebote für "${suche}" gefunden.` : 'Keine Angebote vorhanden.'}
+            </p>
+            {!suche && (
+              <button
+                onClick={() => router.push('/angebote/neu')}
+                className="inline-flex items-center gap-1.5 text-xs bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <Plus size={12} />
+                Erstes Angebot erstellen
+              </button>
+            )}
           </div>
         ) : (
           <ul className="space-y-3">
